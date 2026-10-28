@@ -121,3 +121,13 @@ Ask Noah about these at the end of the first build.
 7. **Cancellation policy** (default above) and the **3-session discount** (deferred).
 8. **Tyler's and Brody's subjects.**
 9. **Launch date.** No business entity exists yet. Worth sorting out before taking real payments.
+
+## Repo notes
+
+@AGENTS.md
+
+- Commands: `npm run dev`, `npm run check` (lint + typecheck + tests), `npm run build`.
+- No env vars = preview mode with sample data (`src/lib/preview/data.ts`). Nothing is saved.
+- Next.js 16 with Cache Components: public data is cached in `getCatalog()` (tag `catalog`); admin actions call `updateTag(CATALOG_TAG)` after edits. Anything reading cookies, search params or the clock goes behind `<Suspense>` or `await connection()`.
+- Pure logic lives in `src/lib/booking/`, `src/lib/money.ts`, `src/lib/analytics.ts`, `src/lib/time.ts`, with tests next to each file. Add a test when changing them.
+- Schema changes: add a new file in `supabase/migrations/`, never edit the applied one. Keep RLS on every table; `scripts/test-db.sh` checks the policies.

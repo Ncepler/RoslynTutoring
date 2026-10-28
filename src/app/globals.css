@@ -1,0 +1,639 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens. Blue and white, Apple-clean. Every colour in the app comes
+ * from these variables so light and dark stay in step.
+ *   Light: white field, ink navy, one cobalt accent.
+ *   Dark: near-black navy field, the same cobalt for fills, a lighter blue for text.
+ */
+:root {
+  --bg: #ffffff;
+  --bg-subtle: #f4f6fa;
+  --surface: #ffffff;
+  --surface-2: #f7f9fc;
+  --ink: #0b1526;
+  --ink-2: #364154;
+  --muted: #5f6b7e;
+  --line: #e4e8ef;
+  --line-strong: #d2d9e4;
+  --accent: #1a56f0;
+  --accent-hover: #1449d6;
+  --accent-text: #1a56f0;
+  --accent-soft: #edf2ff;
+  --accent-soft-ink: #1442c2;
+  --on-accent: #ffffff;
+  --success: #0f7a4b;
+  --success-soft: #e8f6ef;
+  --warn: #9a5800;
+  --warn-soft: #fff4e2;
+  --danger: #c0262d;
+  --danger-soft: #fdecec;
+  --grid-line: rgb(11 21 38 / 0.055);
+  --glass: rgb(255 255 255 / 0.72);
+  --scrim: rgb(11 21 38 / 0.28);
+
+  --shadow-sm: 0 1px 2px rgb(11 21 38 / 0.06);
+  --shadow-card: 0 1px 2px rgb(11 21 38 / 0.04), 0 8px 24px -12px rgb(11 21 38 / 0.12);
+  --shadow-float: 0 2px 4px rgb(11 21 38 / 0.04), 0 24px 48px -20px rgb(11 21 38 / 0.28);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --header-h: 64px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #070b14;
+    --bg-subtle: #0b111d;
+    --surface: #0f1625;
+    --surface-2: #131b2c;
+    --ink: #eef2f8;
+    --ink-2: #c3cbd8;
+    --muted: #8d98ab;
+    --line: #1c2537;
+    --line-strong: #2a3550;
+    --accent: #2a63ff;
+    --accent-hover: #3a70ff;
+    --accent-text: #8aacff;
+    --accent-soft: rgb(58 114 255 / 0.14);
+    --accent-soft-ink: #a9c1ff;
+    --on-accent: #ffffff;
+    --success: #4cc38a;
+    --success-soft: rgb(76 195 138 / 0.12);
+    --warn: #f0b350;
+    --warn-soft: rgb(240 179 80 / 0.12);
+    --danger: #ff7b7f;
+    --danger-soft: rgb(255 123 127 / 0.12);
+    --grid-line: rgb(238 242 248 / 0.05);
+    --glass: rgb(7 11 20 / 0.72);
+    --scrim: rgb(0 0 0 / 0.5);
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+    --shadow-float: 0 2px 4px rgb(0 0 0 / 0.3), 0 24px 48px -20px rgb(0 0 0 / 0.7);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #070b14;
+  --bg-subtle: #0b111d;
+  --surface: #0f1625;
+  --surface-2: #131b2c;
+  --ink: #eef2f8;
+  --ink-2: #c3cbd8;
+  --muted: #8d98ab;
+  --line: #1c2537;
+  --line-strong: #2a3550;
+  --accent: #2a63ff;
+  --accent-hover: #3a70ff;
+  --accent-text: #8aacff;
+  --accent-soft: rgb(58 114 255 / 0.14);
+  --accent-soft-ink: #a9c1ff;
+  --on-accent: #ffffff;
+  --success: #4cc38a;
+  --success-soft: rgb(76 195 138 / 0.12);
+  --warn: #f0b350;
+  --warn-soft: rgb(240 179 80 / 0.12);
+  --danger: #ff7b7f;
+  --danger-soft: rgb(255 123 127 / 0.12);
+  --grid-line: rgb(238 242 248 / 0.05);
+  --glass: rgb(7 11 20 / 0.72);
+  --scrim: rgb(0 0 0 / 0.5);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+  --shadow-float: 0 2px 4px rgb(0 0 0 / 0.3), 0 24px 48px -20px rgb(0 0 0 / 0.7);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-ink: var(--accent-soft-ink);
+  --color-on-accent: var(--on-accent);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius-card: 22px;
+  --radius-control: 12px;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-float: var(--shadow-float);
+
+  --ease-out-strong: var(--ease-out);
+  --ease-in-out-strong: var(--ease-in-out);
+}
+
+/* ---------- Base, with the mobile-native floor ---------- */
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  scroll-padding-top: calc(var(--header-h) + 16px);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11", "ss01";
+}
+
+/* Theme changes ease instead of flashing (only while toggling). */
+html.theme-transition,
+html.theme-transition * {
+  transition:
+    background-color 240ms ease,
+    border-color 240ms ease,
+    color 240ms ease !important;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+input,
+textarea,
+select {
+  font-size: 16px; /* below this, iOS zooms the page on focus */
+}
+
+button,
+a,
+[role="button"],
+label,
+summary {
+  touch-action: manipulation;
+}
+
+button,
+[role="button"],
+summary,
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Type scale: tracking tightens as size grows ---------- */
+
+.t-display {
+  font-size: clamp(2.5rem, 1.5rem + 3.6vw, 4.25rem);
+  line-height: 1.02;
+  letter-spacing: -0.038em;
+  font-weight: 650;
+  text-wrap: balance;
+}
+
+.t-h2 {
+  font-size: clamp(2rem, 1.4rem + 2.6vw, 3.25rem);
+  line-height: 1.06;
+  letter-spacing: -0.032em;
+  font-weight: 650;
+  text-wrap: balance;
+}
+
+.t-h3 {
+  font-size: 1.25rem;
+  line-height: 1.3;
+  letter-spacing: -0.016em;
+  font-weight: 600;
+}
+
+.t-lead {
+  font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+  line-height: 1.55;
+  letter-spacing: -0.006em;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.t-label {
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  font-weight: 550;
+  color: var(--muted);
+}
+
+/* ---------- Buttons: feedback on press, not on release ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.975rem;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  transition:
+    transform 140ms var(--ease-out),
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.btn-secondary {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+}
+
+.btn-ghost {
+  color: var(--ink);
+}
+
+.btn-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.btn-lg {
+  min-height: 52px;
+  padding: 0 1.6rem;
+  font-size: 1.0625rem;
+}
+
+.btn-sm {
+  min-height: 36px;
+  padding: 0 0.95rem;
+  font-size: 0.875rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    border-color: var(--muted);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--bg-subtle);
+  }
+  .link:hover {
+    text-decoration-color: currentColor;
+  }
+  .row-hover:hover {
+    background: var(--surface-2);
+  }
+}
+
+.link {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 160ms ease;
+}
+
+/* ---------- Surfaces ---------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Fine graph-paper grid, faded out toward the edges. Code-drawn, no images. */
+.grid-paper {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: -1px -1px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 70% 30%, #000 30%, transparent 75%);
+  mask-image: radial-gradient(ellipse 80% 70% at 70% 30%, #000 30%, transparent 75%);
+}
+
+/* ---------- Form controls ---------- */
+
+.field {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.field::placeholder {
+  color: var(--muted);
+}
+
+.field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.field[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+/* ---------- Entrance: CSS only, runs off the main thread ---------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* For the LCP headline: transform only, so it's painted in the first frame. */
+@keyframes slide {
+  from {
+    transform: translate3d(0, 20px, 0);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.enter {
+  animation: rise 700ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+
+.enter-tf {
+  animation: slide 700ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+
+/* Steps and panels that swap in place. */
+.swap-in {
+  animation: rise 320ms var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter,
+  .swap-in {
+    animation: fade 200ms ease both;
+    animation-delay: 0ms;
+  }
+  .enter-tf {
+    animation: none;
+  }
+  html.theme-transition,
+  html.theme-transition * {
+    transition: none !important;
+  }
+}
+
+/* ---------- Disclosure (FAQ) ---------- */
+
+details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure-icon {
+  transition: transform 220ms var(--ease-out);
+}
+
+details[open] .disclosure-icon {
+  transform: rotate(45deg);
+}
+
+/* Smooth open/close where the browser supports animating to auto height. */
+@supports (interpolate-size: allow-keywords) {
+  :root {
+    interpolate-size: allow-keywords;
+  }
+  details::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition:
+      block-size 260ms var(--ease-out),
+      content-visibility 260ms allow-discrete;
+  }
+  details[open]::details-content {
+    block-size: auto;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    details::details-content {
+      transition: none;
+    }
+  }
+}
+
+/* ---------- Prose for policy pages ---------- */
+
+.prose-doc h2 {
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.375rem;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  font-weight: 620;
+}
+
+.prose-doc h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.prose-doc p,
+.prose-doc li {
+  color: var(--ink-2);
+  line-height: 1.7;
+}
+
+.prose-doc p + p {
+  margin-top: 0.9rem;
+}
+
+.prose-doc ul {
+  margin-top: 0.75rem;
+  padding-left: 1.2rem;
+  list-style: disc;
+}
+
+.prose-doc li + li {
+  margin-top: 0.4rem;
+}
+
+.prose-doc a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- Theme toggle shows the mode you'd switch to ---------- */
+
+.theme-icon-sun {
+  display: none;
+}
+:root[data-theme="dark"] .theme-icon-sun {
+  display: block;
+}
+:root[data-theme="dark"] .theme-icon-moon {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-icon-sun {
+    display: block;
+  }
+  :root:not([data-theme="light"]) .theme-icon-moon {
+    display: none;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .theme-toggle:hover {
+    background: var(--bg-subtle);
+    color: var(--ink);
+  }
+}
+
+/* ---------- Header: a hairline appears only once content scrolls under it ---------- */
+
+.site-header {
+  box-shadow: 0 1px 0 transparent;
+}
+@supports (animation-timeline: scroll()) {
+  .site-header {
+    animation: header-edge linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 40px;
+  }
+}
+@keyframes header-edge {
+  to {
+    box-shadow: 0 1px 0 var(--line);
+  }
+}
+@supports not (animation-timeline: scroll()) {
+  .site-header {
+    box-shadow: 0 1px 0 var(--line);
+  }
+}
+
+/* ---------- Mobile menu: anchored to its button, exits faster than it enters ---------- */
+
+.menu-panel {
+  opacity: 0;
+  transform: translate3d(0, -8px, 0) scale(0.98);
+  transform-origin: top right;
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    opacity 150ms ease,
+    transform 150ms var(--ease-out),
+    visibility 0s linear 150ms;
+}
+.menu-panel[data-open="true"] {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  visibility: visible;
+  transition:
+    opacity 220ms var(--ease-out),
+    transform 260ms var(--ease-out),
+    visibility 0s;
+}
+.menu-scrim {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+.menu-scrim[data-open="true"] {
+  opacity: 1;
+  pointer-events: auto;
+  transition-duration: 220ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-panel,
+  .menu-panel[data-open="true"] {
+    transform: none;
+  }
+}

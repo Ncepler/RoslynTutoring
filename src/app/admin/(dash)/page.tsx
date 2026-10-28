@@ -6,7 +6,7 @@ import { BookingCard } from "@/components/admin/booking-card";
 import { MoneyPanel } from "@/components/admin/money-panel";
 import { Empty, LinkTabs, PageTitle, Panel } from "@/components/admin/ui";
 import { loadAdminData, requireAdmin } from "@/lib/data/admin";
-import { toAdminBookings } from "@/lib/data/admin-view";
+import { toAdminBookings, whenOf } from "@/lib/data/admin-view";
 import { periodFor, summarizeMoney, type PeriodKind } from "@/lib/money";
 
 export const metadata: Metadata = { title: "Overview" };
@@ -28,14 +28,15 @@ export default async function OverviewPage(props: PageProps<"/admin">) {
   });
 
   const me = session.tutor.id;
-  const all = toAdminBookings(data, now).filter((b) => view === "all" || b.tutorId === me);
-  const byStart = (a: { startAt: string }, b: { startAt: string }) => a.startAt.localeCompare(b.startAt);
-  const pending = all.filter((b) => b.status === "pending").sort(byStart);
+  // Open requests belong to everyone, so they show in both views.
+  const all = toAdminBookings(data, now, me).filter((b) => view === "all" || b.tutorId === me || b.claim);
+  const byStart = (a: Parameters<typeof whenOf>[0], b: Parameters<typeof whenOf>[0]) => whenOf(a).localeCompare(whenOf(b));
+  const pending = all.filter((b) => b.claim).sort(byStart);
   const unpaid = all.filter((b) => b.status === "awaiting_payment").sort(byStart);
   const upcoming = all.filter((b) => b.status === "confirmed" && !b.past).sort(byStart);
   const past = all
     .filter((b) => b.status === "confirmed" && b.past)
-    .sort((a, b) => b.startAt.localeCompare(a.startAt))
+    .sort((a, b) => whenOf(b).localeCompare(whenOf(a)))
     .slice(0, 8);
 
   const href = (p: Record<string, string>) => {
@@ -49,8 +50,8 @@ export default async function OverviewPage(props: PageProps<"/admin">) {
         title={`Hi, ${session.tutor.firstName}`}
         sub={
           pending.length > 0
-            ? `${pending.length} request${pending.length > 1 ? "s" : ""} waiting for a response.`
-            : "No requests waiting for a response."
+            ? `${pending.length} open request${pending.length > 1 ? "s" : ""} waiting for someone to claim.`
+            : "No open requests right now."
         }
         action={
           <LinkTabs
@@ -67,7 +68,11 @@ export default async function OverviewPage(props: PageProps<"/admin">) {
       <MoneyPanel summary={summary} period={period} meId={me} hrefFor={(k) => href({ period: k })} />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <Panel title="Needs a response" sub="Accept or decline. Payment is requested only after you accept." className="lg:col-span-2">
+        <Panel
+          title="Open requests"
+          sub="Every new request goes to all four of you. Claim one of the student's times if you can take it; the payment link goes out when you do."
+          className="lg:col-span-2"
+        >
           {pending.length > 0 ? (
             <div className="grid gap-3 lg:grid-cols-2">
               {pending.map((b) => (
@@ -75,11 +80,11 @@ export default async function OverviewPage(props: PageProps<"/admin">) {
               ))}
             </div>
           ) : (
-            <Empty>You&apos;re all caught up.</Empty>
+            <Empty>Nothing to claim. New requests are emailed to all of you.</Empty>
           )}
         </Panel>
 
-        <Panel title="Waiting on payment" sub="Accepted. The slot is held until it's paid or the hold runs out.">
+        <Panel title="Waiting on payment" sub="Claimed. The time is held until it's paid or the hold runs out.">
           <div className="space-y-3">
             {unpaid.length > 0 ? unpaid.map((b) => <BookingCard key={b.id} b={b} meId={me} />) : <Empty>Nothing waiting on payment.</Empty>}
           </div>

@@ -51,7 +51,7 @@ export function ReportForm() {
   if (status.kind === "sent") {
     return (
       <div className="swap-in card flex items-start gap-4 p-6" role="status">
-        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-success-soft text-success">
+        <span className="grid size-10 shrink-0 place-items-center bg-success-soft text-success">
           <Check size={20} />
         </span>
         <div>
@@ -125,7 +125,7 @@ export function ReportForm() {
         </label>
       </div>
       {status.kind === "error" && (
-        <p className="rounded-[12px] bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
+        <p className="bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
           {status.message}
         </p>
       )}

@@ -1,6 +1,6 @@
 /**
  * Small, dependency-free charts for the analytics page. Single series, one
- * hue (the accent), thin marks with 4px rounded data ends anchored to the
+ * hue (the accent), thin marks with 4px data ends anchored to the
  * baseline, values in ink colors (never the series color), recessive axes.
  */
 
@@ -28,9 +28,9 @@ export function BarList({
               {r.note && <span className="ml-1.5 text-muted">{r.note}</span>}
             </span>
           </div>
-          <div className="mt-1.5 h-2 rounded-r-[4px] bg-bg-subtle">
+          <div className="mt-1.5 h-2 bg-bg-subtle">
             <div
-              className="h-full rounded-r-[4px] bg-accent transition-opacity group-hover:opacity-80"
+              className="h-full bg-accent transition-opacity group-hover:opacity-80"
               style={{ width: `${(r.value / max) * 100}%`, minWidth: r.value > 0 ? 4 : 0 }}
             />
           </div>
@@ -63,12 +63,12 @@ export function ColumnChart({
           {columns.map((c) => (
             <li key={c.label} className="group relative flex h-full flex-1 items-end justify-center" tabIndex={0} aria-label={`${c.label}: ${c.detail}`}>
               <div
-                className="w-full max-w-10 rounded-t-[4px] bg-accent transition-opacity group-hover:opacity-80 group-focus:opacity-80"
+                className="w-full max-w-10 bg-accent transition-opacity group-hover:opacity-80 group-focus:opacity-80"
                 style={{ height: `${(c.value / top) * 100}%`, minHeight: c.value > 0 ? 3 : 0 }}
               />
               <span
                 role="tooltip"
-                className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 translate-y-1 rounded-[10px] bg-ink px-2.5 py-1.5 text-xs whitespace-nowrap text-bg opacity-0 shadow-[var(--shadow-float)] transition-[opacity,transform] duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus:translate-y-0 group-focus:opacity-100"
+                className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 translate-y-1 bg-ink px-2.5 py-1.5 text-xs whitespace-nowrap text-bg opacity-0 transition-[opacity,transform] duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus:translate-y-0 group-focus:opacity-100"
               >
                 <span className="font-semibold">{c.label}</span> · {c.detail}
               </span>

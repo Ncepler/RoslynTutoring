@@ -73,9 +73,10 @@ export type BookingRow = {
   test_id: string | null;
   duration_minutes: number;
   requested_starts: string[];
-  start_at: string;
-  end_at: string;
-  tutor_id: string;
+  start_at: string | null;
+  end_at: string | null;
+  tutor_id: string | null;
+  claim_deadline: string | null;
   status: Booking["status"];
   price_cents: number;
   hold_expires_at: string | null;
@@ -176,6 +177,7 @@ export const toBooking = (r: BookingRow): Booking => ({
   startAt: r.start_at,
   endAt: r.end_at,
   tutorId: r.tutor_id,
+  claimDeadline: r.claim_deadline,
   status: r.status,
   priceCents: r.price_cents,
   holdExpiresAt: r.hold_expires_at,

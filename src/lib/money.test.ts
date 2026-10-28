@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCents, periodFor, sessionLoad, splitEvenly, summarizeMoney } from "./money";
+import { formatCents, periodFor, splitEvenly, summarizeMoney } from "./money";
 import type { BookingStatus } from "./types";
 
 describe("splitEvenly", () => {
@@ -131,23 +131,6 @@ describe("summarizeMoney", () => {
       period: october,
     });
     expect(s.perTutor.map((t) => t.shareCents)).toEqual([1932, 1932, 1932, 0]);
-  });
-});
-
-describe("sessionLoad", () => {
-  it("counts active bookings per tutor in the period", () => {
-    const october = periodFor("month", new Date("2026-10-28T16:00:00Z"));
-    const load = sessionLoad(
-      [
-        { tutorId: "noah", status: "confirmed", startAt: "2026-10-10T20:30:00Z" },
-        { tutorId: "noah", status: "pending", startAt: "2026-10-30T20:30:00Z" },
-        { tutorId: "noah", status: "declined", startAt: "2026-10-30T20:30:00Z" },
-        { tutorId: "alex", status: "awaiting_payment", startAt: "2026-10-30T20:30:00Z" },
-        { tutorId: "alex", status: "confirmed", startAt: "2026-09-30T20:30:00Z" },
-      ],
-      october,
-    );
-    expect(Object.fromEntries(load)).toEqual({ noah: 2, alex: 1 });
   });
 });
 

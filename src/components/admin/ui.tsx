@@ -43,21 +43,21 @@ export function Panel({
 }
 
 export function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="rounded-[14px] border border-dashed border-line-strong px-4 py-6 text-center text-sm text-muted">{children}</p>;
+  return <p className="border border-dashed border-line-strong px-4 py-6 text-center text-sm text-muted">{children}</p>;
 }
 
 const BADGE: Record<BookingStatus, { label: string; className: string }> = {
-  pending: { label: "Needs a response", className: "bg-accent-soft text-accent-soft-ink" },
+  pending: { label: "Open request", className: "bg-accent-soft text-accent-soft-ink" },
   awaiting_payment: { label: "Awaiting payment", className: "bg-warn-soft text-warn" },
   confirmed: { label: "Confirmed", className: "bg-success-soft text-success" },
-  declined: { label: "Declined", className: "bg-bg-subtle text-muted" },
+  declined: { label: "Closed", className: "bg-bg-subtle text-muted" },
   expired: { label: "Expired", className: "bg-bg-subtle text-muted" },
   cancelled: { label: "Cancelled", className: "bg-bg-subtle text-muted" },
 };
 
 export function StatusBadge({ status, past = false }: { status: BookingStatus; past?: boolean }) {
   const b = status === "confirmed" && past ? { label: "Done", className: "bg-bg-subtle text-ink-2" } : BADGE[status];
-  return <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${b.className}`}>{b.label}</span>;
+  return <span className={`inline-flex px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${b.className}`}>{b.label}</span>;
 }
 
 /** Link-based segmented control for filters kept in the URL. */
@@ -71,15 +71,15 @@ export function LinkTabs({
   label: string;
 }) {
   return (
-    <nav aria-label={label} className="inline-flex rounded-[12px] bg-bg-subtle p-1 ring-1 ring-line ring-inset">
+    <nav aria-label={label} className="inline-flex flex-wrap border border-line-strong bg-surface p-1">
       {items.map((i) => (
         <Link
           key={i.value}
           href={i.href}
           scroll={false}
           aria-current={i.value === current ? "true" : undefined}
-          className={`rounded-[9px] px-3 py-1.5 text-sm font-medium transition-colors ${
-            i.value === current ? "bg-surface text-ink shadow-[var(--shadow-sm)]" : "text-muted hover:text-ink"
+          className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+ i.value === current ? "bg-ink text-bg" : "text-ink-2 hover:text-ink"
           }`}
         >
           {i.label}

@@ -43,8 +43,8 @@ export default async function AnalyticsPage(props: PageProps<"/admin/analytics">
       <section className="card grid grid-cols-2 gap-6 p-5 sm:p-6 lg:grid-cols-5" aria-label="Key numbers">
         <Stat label="New students" value={a.newStudents} sub="First request this period" />
         <Stat label="Requests" value={a.requests} />
-        <Stat label="Accepted" value={a.accepted} sub={`${rate(a.accepted, a.requests)} of requests`} />
-        <Stat label="Paid" value={a.paid} sub={`${rate(a.paid, a.requests)} of requests · ${rate(a.paid, a.accepted)} of accepted`} />
+        <Stat label="Claimed" value={a.accepted} sub={`${rate(a.accepted, a.requests)} of requests`} />
+        <Stat label="Paid" value={a.paid} sub={`${rate(a.paid, a.requests)} of requests · ${rate(a.paid, a.accepted)} of claimed`} />
         <Stat
           label="Repeat students"
           value={a.repeatStudents}
@@ -64,11 +64,11 @@ export default async function AnalyticsPage(props: PageProps<"/admin/analytics">
           />
         </Panel>
 
-        <Panel title="Request → accepted → paid" sub={period.label}>
+        <Panel title="Request → claimed → paid" sub={period.label}>
           <BarList
             rows={[
               { label: "Requested", value: a.requests },
-              { label: "Accepted by a tutor", value: a.accepted, note: rate(a.accepted, a.requests) },
+              { label: "Claimed by a tutor", value: a.accepted, note: rate(a.accepted, a.requests) },
               { label: "Paid", value: a.paid, note: rate(a.paid, a.requests) },
             ]}
             empty="No requests in this period."

@@ -16,10 +16,10 @@ export type EmailBlock =
   | { type: "button"; label: string; href: string }
   | { type: "note"; text: string };
 
-const INK = "#0b1526";
-const MUTED = "#5b6577";
-const LINE = "#e3e8f0";
-const ACCENT = "#1a56f0";
+const INK = "#0f172a";
+const MUTED = "#475569";
+const LINE = "#e2e8f0";
+const ACCENT = "#0369a1";
 
 /**
  * One plain, consistent layout for every email: wordmark, heading, blocks.
@@ -34,12 +34,12 @@ export function renderEmail(heading: string, blocks: EmailBlock[]): { html: stri
         case "note":
           return `<p style="margin:0 0 16px;font-size:14px;line-height:1.5;color:${MUTED}">${esc(b.text)}</p>`;
         case "button":
-          return `<p style="margin:24px 0"><a href="${esc(b.href)}" style="display:inline-block;background:${ACCENT};color:#ffffff;text-decoration:none;font-weight:600;font-size:16px;padding:12px 22px;border-radius:999px">${esc(b.label)}</a></p>`;
+          return `<p style="margin:24px 0"><a href="${esc(b.href)}" style="display:inline-block;background:${ACCENT};color:#ffffff;text-decoration:none;font-weight:600;font-size:16px;padding:12px 22px">${esc(b.label)}</a></p>`;
         case "details":
           return `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:8px 0 20px;border-top:1px solid ${LINE}">${b.rows
             .map(
               ([k, v]) =>
-                `<tr><td style="padding:10px 0;border-bottom:1px solid ${LINE};font-size:14px;color:${MUTED};width:38%;vertical-align:top">${esc(k)}</td><td style="padding:10px 0;border-bottom:1px solid ${LINE};font-size:15px;color:${INK};vertical-align:top">${esc(v)}</td></tr>`,
+                `<tr><td style="padding:10px 0;border-bottom:1px solid ${LINE};font-size:14px;color:${MUTED};width:38%;vertical-align:top">${esc(k)}</td><td style="padding:10px 0;border-bottom:1px solid ${LINE};font-size:15px;color:${INK};vertical-align:top">${esc(v).replace(/\n/g, "<br>")}</td></tr>`,
             )
             .join("")}</table>`;
       }
@@ -47,10 +47,10 @@ export function renderEmail(heading: string, blocks: EmailBlock[]): { html: stri
     .join("\n");
 
   const html = `<!doctype html>
-<html><body style="margin:0;padding:0;background:#f5f7fb">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fb;padding:32px 16px">
+<html><body style="margin:0;padding:0;background:#f8fafc">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 16px">
 <tr><td align="center">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid ${LINE};border-radius:20px;padding:32px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid ${LINE};border-top:3px solid ${INK};padding:32px">
 <tr><td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
 <p style="margin:0 0 24px;font-size:15px;font-weight:700;letter-spacing:-0.01em;color:${INK}">${esc(site.name)}</p>
 <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2;letter-spacing:-0.02em;color:${INK}">${esc(heading)}</h1>

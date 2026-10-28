@@ -5,6 +5,7 @@
  * today so the preview always looks current.
  */
 
+import { claimDeadline } from "@/lib/booking/policy";
 import { addDays, localDate, weekdayOf, zonedToUtc } from "@/lib/time";
 import type {
   AvailabilityWindow,
@@ -136,6 +137,12 @@ const seeds: Seed[] = [
   { id: "bk-14", student: "stu-2", subject: "sub-algebra-2", tutor: "tut-noah", status: "cancelled", day: -1, at: hm(17), minutes: 60, createdDaysAgo: 5 },
 ];
 
+function nextWeekday(date: string, minute: number): Date {
+  let d = addDays(date, 1);
+  while (weekdayOf(d) === 0 || weekdayOf(d) === 6) d = addDays(d, 1);
+  return zonedToUtc(d, minute);
+}
+
 export function previewBookings(now: Date): Booking[] {
   const today = localDate(now);
   return seeds.map((s) => {
@@ -149,6 +156,11 @@ export function previewBookings(now: Date): Booking[] {
     const paid = s.status === "confirmed" || s.id === "bk-14";
     const accepted = paid || s.status === "awaiting_payment";
     const fee = paid ? Math.round(price * 0.029) + 30 : 0;
+    // Open, closed and expired requests were never claimed: no tutor, no fixed time.
+    const unclaimed = s.status === "pending" || s.status === "declined" || s.status === "expired";
+    const requestedStarts = unclaimed
+      ? [start, new Date(start.getTime() + 3600_000), nextWeekday(date, s.at + 30)].map((d) => d.toISOString())
+      : [start.toISOString()];
     return {
       id: s.id,
       publicToken: `preview-${s.id}`,
@@ -157,10 +169,11 @@ export function previewBookings(now: Date): Booking[] {
       level: s.subject === "sub-geometry" ? "honors" : "regular",
       testId: s.testId ?? null,
       durationMinutes: s.minutes,
-      requestedStarts: [start.toISOString()],
-      startAt: start.toISOString(),
-      endAt: end.toISOString(),
-      tutorId: s.tutor,
+      requestedStarts,
+      startAt: unclaimed ? null : start.toISOString(),
+      endAt: unclaimed ? null : end.toISOString(),
+      tutorId: unclaimed ? null : s.tutor,
+      claimDeadline: unclaimed ? claimDeadline(requestedStarts).toISOString() : null,
       status: s.status,
       priceCents: price,
       holdExpiresAt: s.status === "awaiting_payment" ? new Date(now.getTime() + 20 * 3600_000).toISOString() : null,
@@ -175,7 +188,7 @@ export function previewBookings(now: Date): Booking[] {
       paidAt: paid ? new Date(created.getTime() + 4 * 3600_000).toISOString() : null,
       cancelledAt: s.status === "cancelled" ? new Date(created.getTime() + 86400_000).toISOString() : null,
       expiredAt: s.status === "expired" ? start.toISOString() : null,
-      respondedBy: accepted || s.status === "declined" ? s.tutor : null,
+      respondedBy: accepted ? s.tutor : null,
       cancelledBy: s.status === "cancelled" ? "student" : null,
       cancelReason: null,
       googleEventId: null,

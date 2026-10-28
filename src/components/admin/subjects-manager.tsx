@@ -42,7 +42,7 @@ export function SubjectsMatrix({ subjects, tutors }: { subjects: Subject[]; tuto
               <tr key={s.id}>
                 <th scope="row" className="px-5 py-3">
                   <span className="font-semibold">{s.name}</span>
-                  {count === 0 && <span className="ml-2 rounded-full bg-warn-soft px-2 py-0.5 text-xs font-medium text-warn">No tutor</span>}
+                  {count === 0 && <span className="ml-2 bg-warn-soft px-2 py-0.5 text-xs font-medium text-warn">No tutor</span>}
                 </th>
                 {tutors.map((t) => {
                   const on = t.subjectIds.includes(s.id);
@@ -95,8 +95,8 @@ function Toggle({ on, busy, disabled, label, onClick }: { on: boolean; busy: boo
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className={`inline-grid size-8 place-items-center rounded-[10px] border transition-[background-color,border-color,transform] duration-150 active:scale-90 ${
-        on ? "border-accent bg-accent text-on-accent" : "border-line-strong bg-surface text-transparent"
+      className={`inline-grid size-8 place-items-center border transition-[background-color,border-color,transform] duration-150 active:scale-90 ${
+ on ? "border-accent bg-accent text-on-accent" : "border-line-strong bg-surface text-transparent"
       }`}
     >
       {busy ? <Spinner size={14} /> : <Check size={16} strokeWidth={2.5} />}

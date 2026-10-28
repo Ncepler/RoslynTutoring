@@ -1,16 +1,16 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { bookingRules, payout, site } from "@/config/site";
-import { assignTutor, exclusionKey } from "@/lib/booking/matching";
+import { bookingRules, site } from "@/config/site";
+import { busyFromBookings, freeTutorsByTime } from "@/lib/booking/claim";
 import {
   cancelQuote,
-  canAccept,
-  canDecline,
+  canClaim,
+  canClose,
   checkoutExpiresAt,
+  claimDeadline,
   effectiveStatus,
   holdExpiresAt,
-  pendingCutoff,
   priceCents,
 } from "@/lib/booking/policy";
 import { computeSlots, publicSlots, type BusyInterval } from "@/lib/booking/slots";
@@ -19,9 +19,8 @@ import { buildIcs } from "@/lib/calendar/ics";
 import { createCalendarEvent, deleteCalendarEvent } from "@/lib/calendar/google";
 import { sendEmail } from "@/lib/email/send";
 import * as templates from "@/lib/email/templates";
-import type { BookingContext } from "@/lib/email/templates";
+import { asClaimed, type BookingContext, type ClaimedContext } from "@/lib/email/templates";
 import { isPreview } from "@/lib/env";
-import { periodFor, sessionLoad } from "@/lib/money";
 import { notifyAdmins } from "@/lib/notify";
 import { createCheckout, expireCheckout, paymentDetails, refund } from "@/lib/payments/stripe";
 import {
@@ -63,47 +62,39 @@ export type ActionResult = { ok: true; message?: string } | { ok: false; message
 type Scheduling = {
   tutors: Tutor[];
   availability: AvailabilityWindow[];
+  /** Time already taken by claimed bookings. Open requests don't block anyone. */
   busy: BusyInterval[];
-  load: Map<string, number>;
 };
 
 async function loadScheduling(db: Db, now: Date): Promise<Scheduling> {
-  const period = periodFor(payout.period, now);
-  const since = period.start && period.start < now ? period.start : now;
   const [tutors, availability, bookings] = await Promise.all([
     db.from("tutors").select(TUTOR_SELECT).eq("active", true).order("sort_order"),
     db.from("availability").select("id, tutor_id, weekday, start_minute, end_minute"),
     db
       .from("bookings")
-      .select("tutor_id, status, start_at, end_at")
+      .select("tutor_id, start_at, end_at")
       .in("status", HOLDING_STATUSES as string[])
-      .gte("end_at", since.toISOString()),
+      .not("tutor_id", "is", null)
+      .gte("end_at", now.toISOString()),
   ]);
   for (const r of [tutors, availability, bookings]) if (r.error) throw r.error;
 
-  const rows = bookings.data as Pick<BookingRow, "tutor_id" | "status" | "start_at" | "end_at">[];
+  const rows = bookings.data as { tutor_id: string; start_at: string; end_at: string }[];
   return {
     tutors: (tutors.data as TutorRow[]).map(toTutor),
     availability: (availability.data as AvailabilityRow[]).map(toAvailability),
     busy: rows.map((b) => ({ tutorId: b.tutor_id, start: new Date(b.start_at), end: new Date(b.end_at) })),
-    load: sessionLoad(
-      rows.map((b) => ({ tutorId: b.tutor_id, status: b.status, startAt: b.start_at })),
-      period,
-    ),
   };
 }
 
 function previewScheduling(now: Date): Scheduling {
-  const bookings = previewBookings(now).filter((b) => HOLDING_STATUSES.includes(effectiveStatus(b, now)));
-  return {
-    tutors: previewTutors,
-    availability: previewAvailability,
-    busy: bookings.map((b) => ({ tutorId: b.tutorId, start: new Date(b.startAt), end: new Date(b.endAt) })),
-    load: sessionLoad(bookings, periodFor(payout.period, now)),
-  };
+  return { tutors: previewTutors, availability: previewAvailability, busy: busyFromBookings(previewBookings(now), now) };
 }
 
-/** Open start times for a subject. Times only; who is free is never exposed. */
+/**
+ * Times a student can pick for a subject: when at least one founder who
+ * teaches it is free. Times only; who is free is never exposed.
+ */
 export async function getOpenSlots(subjectId: string, durationMinutes: number, now = new Date()) {
   let scheduling: Scheduling;
   if (isPreview) {
@@ -113,9 +104,7 @@ export async function getOpenSlots(subjectId: string, durationMinutes: number, n
     await expireStale(db, now);
     scheduling = await loadScheduling(db, now);
   }
-  return publicSlots(
-    computeSlots({ subjectId, durationMinutes, now, rules: bookingRules, ...scheduling }),
-  );
+  return publicSlots(computeSlots({ subjectId, durationMinutes, now, rules: bookingRules, ...scheduling }));
 }
 
 // ---------------------------------------------------------------------------
@@ -128,22 +117,26 @@ const CONTEXT_SELECT =
 type ContextRow = BookingRow & {
   students: StudentRow;
   subjects: SubjectRow;
-  tutors: TutorRow;
+  tutors: TutorRow | null;
   tests: TestRow | null;
 };
 
 async function contextFromRow(db: Db, row: ContextRow): Promise<BookingContext> {
-  const { data: priv } = await db
-    .from("tutor_private")
-    .select("tutor_id, email, zoom_link, calendar_id")
-    .eq("tutor_id", row.tutor_id)
-    .maybeSingle();
+  let tutorPrivate = null;
+  if (row.tutor_id) {
+    const { data } = await db
+      .from("tutor_private")
+      .select("tutor_id, email, zoom_link, calendar_id")
+      .eq("tutor_id", row.tutor_id)
+      .maybeSingle();
+    tutorPrivate = data ? toTutorPrivate(data as TutorPrivateRow) : null;
+  }
   return {
     booking: toBooking(row),
     student: toStudent(row.students),
     subject: toSubject(row.subjects),
-    tutor: toTutor(row.tutors),
-    tutorPrivate: priv ? toTutorPrivate(priv as TutorPrivateRow) : null,
+    tutor: row.tutors ? toTutor(row.tutors) : null,
+    tutorPrivate,
     test: row.tests ? toTest(row.tests) : null,
   };
 }
@@ -154,19 +147,17 @@ async function loadContext(db: Db, bookingId: string): Promise<BookingContext | 
   return data ? contextFromRow(db, data as ContextRow) : null;
 }
 
-function familyRecipients(ctx: BookingContext) {
-  return { to: ctx.student.email, cc: ctx.student.parentEmail };
-}
-
 async function emailFamily(ctx: BookingContext, email: templates.RenderedEmail, attachIcs = false) {
+  const claimed = asClaimed(ctx);
   await sendEmail({
-    ...familyRecipients(ctx),
+    to: ctx.student.email,
+    cc: ctx.student.parentEmail,
     ...email,
-    attachments: attachIcs ? [icsAttachment(ctx)] : undefined,
+    attachments: attachIcs && claimed ? [icsAttachment(claimed)] : undefined,
   });
 }
 
-function icsAttachment(ctx: BookingContext, status: "CONFIRMED" | "CANCELLED" = "CONFIRMED") {
+function icsAttachment(ctx: ClaimedContext, status: "CONFIRMED" | "CANCELLED" = "CONFIRMED") {
   const zoom = ctx.tutorPrivate?.zoomLink ?? undefined;
   return {
     filename: "session.ics",
@@ -193,19 +184,26 @@ function icsAttachment(ctx: BookingContext, status: "CONFIRMED" | "CANCELLED" = 
 }
 
 // ---------------------------------------------------------------------------
-// 1. A student requests a session
+// 1. A student sends a request. Nobody is assigned: every founder is told.
 // ---------------------------------------------------------------------------
 
 export type CreateResult =
-  | { ok: true; token: string; startAt: string; preferenceIndex: number }
+  | { ok: true; token: string; requestedStarts: string[] }
   | { ok: false; status: number; message: string };
 
 const NO_SLOT = "Those times were just taken. Please pick another time.";
 
+/** Keeps the student's preferences that are still open, in their order. */
+function stillOpen(preferences: string[], slots: { start: string }[]) {
+  const open = new Set(slots.map((s) => new Date(s.start).toISOString()));
+  return preferences.map((p) => new Date(p).toISOString()).filter((p) => open.has(p));
+}
+
 export async function createBookingRequest(req: BookingRequest, now = new Date()): Promise<CreateResult> {
   if (isPreview) {
-    const subject = previewSubjects.find((s) => s.id === req.subjectId);
-    if (!subject) return { ok: false, status: 400, message: "That subject isn't offered." };
+    if (!previewSubjects.some((s) => s.id === req.subjectId)) {
+      return { ok: false, status: 400, message: "That subject isn't offered." };
+    }
     const slots = computeSlots({
       subjectId: req.subjectId,
       durationMinutes: req.durationMinutes,
@@ -213,10 +211,9 @@ export async function createBookingRequest(req: BookingRequest, now = new Date()
       rules: bookingRules,
       ...previewScheduling(now),
     });
-    const s = previewScheduling(now);
-    const a = assignTutor({ preferences: req.preferences, slots, load: s.load, order: s.tutors.map((t) => t.id) });
-    if (!a) return { ok: false, status: 409, message: NO_SLOT };
-    return { ok: true, token: "preview", startAt: a.start, preferenceIndex: a.preferenceIndex };
+    const open = stillOpen(req.preferences, slots);
+    if (open.length === 0) return { ok: false, status: 409, message: NO_SLOT };
+    return { ok: true, token: "preview", requestedStarts: open };
   }
 
   const db = createServiceClient();
@@ -245,12 +242,8 @@ export async function createBookingRequest(req: BookingRequest, now = new Date()
     rules: bookingRules,
     ...scheduling,
   });
-  const order = scheduling.tutors.map((t) => t.id);
-
-  // Check there's a match before saving anything about the student.
-  if (!assignTutor({ preferences: req.preferences, slots, load: scheduling.load, order })) {
-    return { ok: false, status: 409, message: NO_SLOT };
-  }
+  const requestedStarts = stillOpen(req.preferences, slots);
+  if (requestedStarts.length === 0) return { ok: false, status: 409, message: NO_SLOT };
 
   const { data: student, error: studentError } = await db
     .from("students")
@@ -269,66 +262,69 @@ export async function createBookingRequest(req: BookingRequest, now = new Date()
     .single();
   if (studentError) throw studentError;
 
-  const exclude = new Set<string>();
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const a = assignTutor({ preferences: req.preferences, slots, load: scheduling.load, order, exclude });
-    if (!a) return { ok: false, status: 409, message: NO_SLOT };
+  const token = randomBytes(24).toString("base64url");
+  const { data, error } = await db
+    .from("bookings")
+    .insert({
+      public_token: token,
+      student_id: student.id,
+      subject_id: req.subjectId,
+      level,
+      test_id: testId,
+      duration_minutes: req.durationMinutes,
+      requested_starts: requestedStarts,
+      claim_deadline: claimDeadline(requestedStarts).toISOString(),
+      status: "pending",
+      price_cents: priceCents(req.durationMinutes),
+      consent_at: now.toISOString(),
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
 
-    const start = new Date(a.start);
-    const token = randomBytes(24).toString("base64url");
-    const { data, error } = await db
-      .from("bookings")
-      .insert({
-        public_token: token,
-        student_id: student.id,
-        subject_id: req.subjectId,
-        level,
-        test_id: testId,
-        duration_minutes: req.durationMinutes,
-        requested_starts: req.preferences.map((p) => new Date(p).toISOString()),
-        start_at: start.toISOString(),
-        end_at: new Date(start.getTime() + req.durationMinutes * 60_000).toISOString(),
-        tutor_id: a.tutorId,
-        status: "pending",
-        price_cents: priceCents(req.durationMinutes),
-        consent_at: now.toISOString(),
-      })
-      .select("id")
-      .single();
-
-    if (error?.code === "23P01") {
-      // Someone else grabbed this tutor at this time a moment ago. Try the next option.
-      exclude.add(exclusionKey(a.tutorId, a.start));
-      continue;
-    }
-    if (error) throw error;
-
-    const ctx = await loadContext(db, data.id);
-    if (ctx) {
-      await emailFamily(ctx, templates.requestReceived(ctx));
-      await notifyAdmins(templates.adminNewRequest(ctx));
-    }
-    return { ok: true, token, startAt: a.start, preferenceIndex: a.preferenceIndex };
+  const ctx = await loadContext(db, data.id);
+  if (ctx) {
+    const names = new Map(scheduling.tutors.map((t) => [t.id, t.firstName]));
+    const free = freeTutorsByTime(requestedStarts, slots);
+    await emailFamily(ctx, templates.requestReceived(ctx));
+    await notifyAdmins(
+      templates.adminNewRequest(
+        ctx,
+        requestedStarts.map((s) => ({ start: s, free: (free.get(s) ?? []).map((id) => names.get(id) ?? "") })),
+      ),
+    );
   }
-  return { ok: false, status: 409, message: NO_SLOT };
+  return { ok: true, token, requestedStarts };
 }
 
 // ---------------------------------------------------------------------------
-// 2. A tutor accepts or declines
+// 2. A founder claims it (or the founders close it if nobody can take it)
 // ---------------------------------------------------------------------------
 
-export async function acceptBooking(db: Db, bookingId: string, actorId: string, now = new Date()): Promise<ActionResult> {
+export async function claimBooking(
+  db: Db,
+  bookingId: string,
+  actorId: string,
+  start: string,
+  now = new Date(),
+): Promise<ActionResult> {
   const ctx = await loadContext(db, bookingId);
-  if (!ctx) return { ok: false, message: "Booking not found." };
-  const check = canAccept(ctx.booking, now);
+  if (!ctx) return { ok: false, message: "Request not found." };
+  const check = canClaim(ctx.booking, start, now);
   if (!check.ok) return { ok: false, message: check.reason };
 
-  const hold = holdExpiresAt(now, new Date(ctx.booking.startAt));
+  const startAt = new Date(start);
+  const endAt = new Date(startAt.getTime() + ctx.booking.durationMinutes * 60_000);
+  const hold = holdExpiresAt(now, startAt);
 
-  // Claim it first so two admins can't both accept.
+  // Claim atomically: only one founder can win, and the database refuses it if
+  // the claimer already has a session at that time.
   const { data: claimed, error } = await db
     .from("bookings")
     .update({
+      tutor_id: actorId,
+      start_at: startAt.toISOString(),
+      end_at: endAt.toISOString(),
       status: "awaiting_payment",
       accepted_at: now.toISOString(),
       responded_by: actorId,
@@ -336,17 +332,23 @@ export async function acceptBooking(db: Db, bookingId: string, actorId: string, 
     })
     .eq("id", bookingId)
     .eq("status", "pending")
+    .is("tutor_id", null)
     .select("id");
+  if (error?.code === "23P01") return { ok: false, message: "You already have a session at that time." };
   if (error) throw error;
-  if (!claimed?.length) return { ok: false, message: "Someone already responded to this request." };
+  if (!claimed?.length) return { ok: false, message: "Someone claimed this a moment ago." };
+
+  const after = await loadContext(db, bookingId);
+  const claimedCtx = after ? asClaimed(after) : null;
+  if (!claimedCtx) return { ok: false, message: "Claimed, but couldn't load the booking. Refresh." };
 
   try {
     const checkout = await createCheckout({
       bookingId,
-      publicToken: ctx.booking.publicToken,
-      amountCents: ctx.booking.priceCents,
-      description: `${ctx.subject.name} session, ${ctx.booking.durationMinutes} minutes, with ${ctx.tutor.firstName}`,
-      customerEmail: ctx.student.parentEmail,
+      publicToken: claimedCtx.booking.publicToken,
+      amountCents: claimedCtx.booking.priceCents,
+      description: `${claimedCtx.subject.name} session, ${claimedCtx.booking.durationMinutes} minutes, with ${claimedCtx.tutor.firstName}`,
+      customerEmail: claimedCtx.student.parentEmail,
       expiresAt: checkoutExpiresAt(hold, now),
     });
     if (checkout) {
@@ -357,23 +359,31 @@ export async function acceptBooking(db: Db, bookingId: string, actorId: string, 
       if (saveError) throw saveError;
     }
   } catch (err) {
-    console.error("[accept] checkout failed, reverting", err);
+    console.error("[claim] checkout failed, releasing the claim", err);
     await db
       .from("bookings")
-      .update({ status: "pending", accepted_at: null, responded_by: null, hold_expires_at: null })
+      .update({
+        tutor_id: null,
+        start_at: null,
+        end_at: null,
+        status: "pending",
+        accepted_at: null,
+        responded_by: null,
+        hold_expires_at: null,
+      })
       .eq("id", bookingId);
-    return { ok: false, message: "Couldn't create the payment link. Nothing changed; try again." };
+    return { ok: false, message: "Couldn't create the payment link, so the claim was undone. Try again." };
   }
 
-  const updated = await loadContext(db, bookingId);
-  if (updated) await emailFamily(updated, templates.accepted(updated));
-  return { ok: true, message: "Accepted. The student has been sent a payment link." };
+  await emailFamily(claimedCtx, templates.claimed(claimedCtx));
+  await notifyAdmins(templates.adminClaimed(claimedCtx));
+  return { ok: true, message: "Claimed. The student and parent have the payment link." };
 }
 
-export async function declineBooking(db: Db, bookingId: string, actorId: string, now = new Date()): Promise<ActionResult> {
+export async function closeRequest(db: Db, bookingId: string, actorId: string, now = new Date()): Promise<ActionResult> {
   const ctx = await loadContext(db, bookingId);
-  if (!ctx) return { ok: false, message: "Booking not found." };
-  const check = canDecline(ctx.booking);
+  if (!ctx) return { ok: false, message: "Request not found." };
+  const check = canClose(ctx.booking);
   if (!check.ok) return { ok: false, message: check.reason };
 
   const { data, error } = await db
@@ -381,12 +391,13 @@ export async function declineBooking(db: Db, bookingId: string, actorId: string,
     .update({ status: "declined", declined_at: now.toISOString(), responded_by: actorId })
     .eq("id", bookingId)
     .eq("status", "pending")
+    .is("tutor_id", null)
     .select("id");
   if (error) throw error;
-  if (!data?.length) return { ok: false, message: "Someone already responded to this request." };
+  if (!data?.length) return { ok: false, message: "Someone claimed or closed this a moment ago." };
 
   await emailFamily(ctx, templates.declined(ctx));
-  return { ok: true, message: "Declined. The student has been told and the time is free again." };
+  return { ok: true, message: "Closed. The student has been told nobody could take it." };
 }
 
 // ---------------------------------------------------------------------------
@@ -419,10 +430,11 @@ export async function confirmPayment(db: Db, checkoutSessionId: string, bookingI
     .from("bookings")
     .update({ ...paidFields, status: "confirmed", hold_expires_at: null })
     .eq("id", row.id)
+    .not("tutor_id", "is", null)
     .in("status", ["awaiting_payment", "expired"]);
 
   if (confirmError?.code === "23P01") {
-    // The hold lapsed and the time was given to someone else before payment landed.
+    // The hold lapsed and the tutor's time went to someone else before payment landed.
     await db.from("bookings").update(paidFields).eq("id", row.id);
     const ok = await refund(details.paymentIntentId, details.amountCents, row.id).catch(() => false);
     if (ok) await db.from("bookings").update({ refunded_cents: details.amountCents }).eq("id", row.id);
@@ -441,7 +453,8 @@ export async function confirmPayment(db: Db, checkoutSessionId: string, bookingI
 
   const ctx = await loadContext(db, row.id);
   if (!ctx) return;
-  if (ctx.booking.status !== "confirmed") {
+  const claimed = asClaimed(ctx);
+  if (ctx.booking.status !== "confirmed" || !claimed) {
     // e.g. paid after an admin cancelled it. Record the money so the totals stay right.
     await db.from("bookings").update(paidFields).eq("id", row.id);
     await notifyAdmins(
@@ -449,10 +462,10 @@ export async function confirmPayment(db: Db, checkoutSessionId: string, bookingI
     );
     return;
   }
-  await afterConfirmed(db, ctx);
+  await afterConfirmed(db, claimed);
 }
 
-async function afterConfirmed(db: Db, ctx: BookingContext) {
+async function afterConfirmed(db: Db, ctx: ClaimedContext) {
   const eventId = await createCalendarEvent(ctx.tutorPrivate?.calendarId ?? null, {
     summary: `${ctx.subject.name} with ${ctx.student.firstName} ${ctx.student.lastName.charAt(0)}.`,
     description: [
@@ -490,7 +503,8 @@ export async function simulatePayment(token: string, now = new Date()): Promise<
     .eq("status", "awaiting_payment");
   if (error) throw error;
   const ctx = await loadContext(db, data.id);
-  if (ctx) await afterConfirmed(db, ctx);
+  const claimed = ctx ? asClaimed(ctx) : null;
+  if (claimed) await afterConfirmed(db, claimed);
   return { ok: true };
 }
 
@@ -587,14 +601,14 @@ export async function cancelBooking(db: Db, bookingId: string, opts: CancelOptio
 // 5. Housekeeping (lazy on every booking read, and the daily cron)
 // ---------------------------------------------------------------------------
 
-/** Expires unanswered requests and unpaid holds, and tells the student. */
+/** Expires unclaimed requests and unpaid holds, and tells the student. */
 export async function expireStale(db: Db, now = new Date()): Promise<number> {
-  const [pending, unpaid] = await Promise.all([
+  const [unclaimed, unpaid] = await Promise.all([
     db
       .from("bookings")
       .update({ status: "expired", expired_at: now.toISOString() })
       .eq("status", "pending")
-      .lte("start_at", pendingCutoff(now).toISOString())
+      .lte("claim_deadline", now.toISOString())
       .select("id"),
     db
       .from("bookings")
@@ -603,10 +617,10 @@ export async function expireStale(db: Db, now = new Date()): Promise<number> {
       .lte("hold_expires_at", now.toISOString())
       .select("id, stripe_checkout_session_id"),
   ]);
-  if (pending.error) throw pending.error;
+  if (unclaimed.error) throw unclaimed.error;
   if (unpaid.error) throw unpaid.error;
 
-  for (const row of pending.data ?? []) {
+  for (const row of unclaimed.data ?? []) {
     const ctx = await loadContext(db, row.id);
     if (ctx) await emailFamily(ctx, templates.expired(ctx, "no_response"));
   }
@@ -615,7 +629,7 @@ export async function expireStale(db: Db, now = new Date()): Promise<number> {
     const ctx = await loadContext(db, row.id);
     if (ctx) await emailFamily(ctx, templates.expired(ctx, "unpaid"));
   }
-  return (pending.data?.length ?? 0) + (unpaid.data?.length ?? 0);
+  return (unclaimed.data?.length ?? 0) + (unpaid.data?.length ?? 0);
 }
 
 /** Emails the student, parent and tutor about sessions in the next 24 hours. */
@@ -632,14 +646,15 @@ export async function sendReminders(db: Db, now = new Date()): Promise<number> {
   let sent = 0;
   for (const row of (data ?? []) as ContextRow[]) {
     // Claim the reminder first so an overlapping run can't double-send.
-    const { data: claimed } = await db
+    const { data: marked } = await db
       .from("bookings")
       .update({ reminder_sent_at: now.toISOString() })
       .eq("id", row.id)
       .is("reminder_sent_at", null)
       .select("id");
-    if (!claimed?.length) continue;
-    const ctx = await contextFromRow(db, row);
+    if (!marked?.length) continue;
+    const ctx = asClaimed(await contextFromRow(db, row));
+    if (!ctx) continue;
     await emailFamily(ctx, templates.reminder(ctx));
     if (ctx.tutorPrivate?.email) await sendEmail({ to: ctx.tutorPrivate.email, ...templates.tutorReminder(ctx) });
     sent++;
@@ -657,10 +672,11 @@ export type BookingView = {
   subjectName: string;
   subjectSlug: string;
   level: Booking["level"];
-  tutorFirstName: string;
+  tutorFirstName: string | null;
   studentFirstName: string;
-  startAt: string;
-  endAt: string;
+  requestedStarts: string[];
+  startAt: string | null;
+  endAt: string | null;
   durationMinutes: number;
   priceCents: number;
   amountPaidCents: number;
@@ -676,8 +692,8 @@ export type BookingView = {
 };
 
 export async function getBookingView(token: string, now = new Date()): Promise<BookingView | null> {
-  if (token.length < 16 || token.length > 64) return null;
-  let ctx: Pick<BookingContext, "booking" | "student" | "subject" | "tutor" | "tutorPrivate" | "test">;
+  if (token.length > 64 || (!isPreview && token.length < 16)) return null;
+  let ctx: BookingContext;
   if (isPreview) {
     const b = previewBookings(now).find((x) => x.publicToken === token);
     if (!b) return null;
@@ -685,7 +701,7 @@ export async function getBookingView(token: string, now = new Date()): Promise<B
       booking: b,
       student: previewStudents.find((x) => x.id === b.studentId)!,
       subject: previewSubjects.find((x) => x.id === b.subjectId)!,
-      tutor: previewTutors.find((x) => x.id === b.tutorId)!,
+      tutor: previewTutors.find((x) => x.id === b.tutorId) ?? null,
       tutorPrivate: previewTutorPrivate.find((x) => x.tutorId === b.tutorId) ?? null,
       test: null,
     };
@@ -705,8 +721,9 @@ export async function getBookingView(token: string, now = new Date()): Promise<B
     subjectName: ctx.subject.name,
     subjectSlug: ctx.subject.slug,
     level: b.level,
-    tutorFirstName: ctx.tutor.firstName,
+    tutorFirstName: ctx.tutor?.firstName ?? null,
     studentFirstName: ctx.student.firstName,
+    requestedStarts: b.requestedStarts,
     startAt: b.startAt,
     endAt: b.endAt,
     durationMinutes: b.durationMinutes,
@@ -719,7 +736,7 @@ export async function getBookingView(token: string, now = new Date()): Promise<B
     testCourse: ctx.test?.course ?? null,
     cancel: (() => {
       if (!["pending", "awaiting_payment", "confirmed"].includes(status)) return null;
-      const q = cancelQuote(b, now);
+      const q = cancelQuote({ ...b, status }, now);
       return q.allowed ? { refundCents: q.refundCents, late: q.late } : null;
     })(),
     canSimulatePayment:
@@ -742,6 +759,6 @@ export async function getBookingIcs(token: string): Promise<string | null> {
   const { data, error } = await db.from("bookings").select(CONTEXT_SELECT).eq("public_token", token).maybeSingle();
   if (error) throw error;
   if (!data || (data as ContextRow).status !== "confirmed") return null;
-  const ctx = await contextFromRow(db, data as ContextRow);
-  return icsAttachment(ctx).content;
+  const ctx = asClaimed(await contextFromRow(db, data as ContextRow));
+  return ctx ? icsAttachment(ctx).content : null;
 }

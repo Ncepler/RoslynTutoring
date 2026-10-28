@@ -14,6 +14,7 @@ const b = (over: Partial<B>): B => ({
   status: "confirmed",
   testId: null,
   startAt: "2026-10-20T20:30:00Z",
+  requestedStarts: ["2026-10-20T20:30:00Z"],
   durationMinutes: 60,
   createdAt: "2026-10-18T12:00:00Z",
   acceptedAt: "2026-10-18T15:00:00Z",

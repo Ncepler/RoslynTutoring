@@ -31,20 +31,20 @@ const COLUMNS = [
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-line bg-bg-subtle pb-[env(safe-area-inset-bottom)]">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.4fr_repeat(3,1fr)]">
-        <div className="max-w-xs">
+    <footer className="border-t border-rule pb-[env(safe-area-inset-bottom)]">
+      <div className="wrap grid gap-10 py-14 md:grid-cols-12">
+        <div className="md:col-span-5">
           <Wordmark />
-          <p className="mt-3 text-sm leading-relaxed text-muted">
+          <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">
             One-on-one pre-test review on Zoom, run by {site.school} students for {site.school} students.
           </p>
-          <a href={`mailto:${site.contactEmail}`} className="link mt-3 inline-block text-sm">
+          <a href={`mailto:${site.contactEmail}`} className="link mt-3 inline-block text-sm font-medium">
             {site.contactEmail}
           </a>
         </div>
         {COLUMNS.map((col) => (
-          <div key={col.title}>
-            <h2 className="t-label">{col.title}</h2>
+          <div key={col.title} className="md:col-span-2 lg:col-span-2">
+            <h2 className="t-label font-sans">{col.title}</h2>
             <ul className="mt-3 space-y-2">
               {col.links.map((l) => (
                 <li key={l.href}>
@@ -57,7 +57,7 @@ export function SiteFooter() {
           </div>
         ))}
       </div>
-      <div className="mx-auto max-w-6xl border-t border-line px-4 py-6 text-xs leading-relaxed text-muted sm:px-6">
+      <div className="wrap border-t border-line py-6 text-xs leading-relaxed text-muted">
         {site.name} is an independent, student-run business. It isn&apos;t a school club and isn&apos;t affiliated with or
         endorsed by the {site.school} School District.
       </div>

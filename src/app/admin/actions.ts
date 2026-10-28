@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { bookingRules } from "@/config/site";
 import { requireAdmin } from "@/lib/data/admin";
-import { acceptBooking, cancelBooking, declineBooking, type ActionResult } from "@/lib/data/bookings";
+import { cancelBooking, claimBooking, closeRequest, type ActionResult } from "@/lib/data/bookings";
 import { CATALOG_TAG } from "@/lib/data/catalog";
 import { isPreview } from "@/lib/env";
 import { createUserClient } from "@/lib/supabase/server";
@@ -49,11 +49,12 @@ export async function signOut() {
 // Bookings
 // ---------------------------------------------------------------------------
 
-export async function acceptAction(bookingId: string): Promise<ActionResult> {
+/** Claim an open request at one of the student's preferred times. */
+export async function claimAction(bookingId: string, start: string): Promise<ActionResult> {
   const s = await session();
   if (!s) return PREVIEW;
   try {
-    const result = await acceptBooking(s.db, bookingId, s.tutor.id);
+    const result = await claimBooking(s.db, bookingId, s.tutor.id, start);
     refresh();
     return result;
   } catch (err) {
@@ -61,11 +62,12 @@ export async function acceptAction(bookingId: string): Promise<ActionResult> {
   }
 }
 
-export async function declineAction(bookingId: string): Promise<ActionResult> {
+/** Close an open request nobody can take; the student is told. */
+export async function closeAction(bookingId: string): Promise<ActionResult> {
   const s = await session();
   if (!s) return PREVIEW;
   try {
-    const result = await declineBooking(s.db, bookingId, s.tutor.id);
+    const result = await closeRequest(s.db, bookingId, s.tutor.id);
     refresh();
     return result;
   } catch (err) {

@@ -15,6 +15,7 @@ type AnalyticsBooking = Pick<
   | "status"
   | "testId"
   | "startAt"
+  | "requestedStarts"
   | "durationMinutes"
   | "createdAt"
   | "acceptedAt"
@@ -89,7 +90,7 @@ export function computeAnalytics(params: {
   // Tutor hours: confirmed sessions that have already happened.
   const minutes = new Map<string, number>();
   for (const b of bookings) {
-    if (b.status !== "confirmed" || !inPeriod(b.startAt, period)) continue;
+    if (b.status !== "confirmed" || !b.tutorId || !b.startAt || !inPeriod(b.startAt, period)) continue;
     if (new Date(b.startAt).getTime() > params.now.getTime()) continue;
     minutes.set(b.tutorId, (minutes.get(b.tutorId) ?? 0) + b.durationMinutes);
   }
@@ -100,7 +101,10 @@ export function computeAnalytics(params: {
   for (const b of inRange) {
     const testDate = b.testId ? testDates.get(b.testId) : undefined;
     if (!testDate) continue;
-    const days = daysBetween(localDate(new Date(b.startAt), tz), testDate);
+    // Open requests have no fixed time yet; use the student's first choice.
+    const when = b.startAt ?? b.requestedStarts[0];
+    if (!when) continue;
+    const days = daysBetween(localDate(new Date(when), tz), testDate);
     if (days < 0) continue;
     const bucket = buckets.find((x) => days >= x.min && days <= x.max);
     if (bucket) bucket.count++;

@@ -22,8 +22,8 @@ export default async function ReportsPage() {
           <article key={r.id} className={`card p-5 ${r.resolvedAt ? "opacity-60" : ""}`}>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span
-                className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                  r.topic === "safety" ? "bg-danger-soft text-danger" : "bg-bg-subtle text-ink-2"
+                className={`px-2.5 py-0.5 text-xs font-semibold ${
+ r.topic === "safety" ? "bg-danger-soft text-danger" : "bg-bg-subtle text-ink-2"
                 }`}
               >
                 {TOPIC_LABEL[r.topic as keyof typeof TOPIC_LABEL] ?? r.topic}

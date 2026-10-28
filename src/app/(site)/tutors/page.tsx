@@ -18,9 +18,9 @@ export default async function TutorsPage() {
     <>
       <PageIntro
         title="The tutors"
-        lead={`Every session is taught by one of the founders: ${site.school} students who have each earned many 100s on Regents exams. When you book, you're matched with whoever teaches your subject and is free at your time.`}
+        lead={`Every session is taught by one of the founders: ${site.school} students who have each earned many 100s on Regents exams. When you book, your request goes to all of them and whoever can take one of your times claims it.`}
       />
-      <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 md:py-20">
+      <section className="wrap px-4 py-14 sm:px-6 md:py-20">
         <div className="grid gap-4 sm:grid-cols-2">
           {catalog.tutors.map((t) => (
             <TutorCard key={t.id} tutor={t} subjects={catalog.subjects} />

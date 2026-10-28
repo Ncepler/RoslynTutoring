@@ -52,7 +52,7 @@ export function BookingActions({
   return (
     <div className="mt-8 space-y-4">
       {canSimulatePayment && (
-        <div className="rounded-[16px] border border-dashed border-line-strong p-4 text-sm">
+        <div className="border border-dashed border-line-strong p-4 text-sm">
           <p className="text-muted">Local testing: Stripe isn&apos;t set up, so you can mark this as paid.</p>
           <button
             type="button"
@@ -72,7 +72,7 @@ export function BookingActions({
       )}
 
       {cancel && confirming && (
-        <div className="swap-in rounded-[18px] border border-line bg-bg-subtle p-5" role="alertdialog" aria-labelledby="cancel-title">
+        <div className="swap-in border border-line bg-bg-subtle p-5" role="alertdialog" aria-labelledby="cancel-title">
           <p id="cancel-title" className="font-semibold">
             Cancel this {status === "confirmed" ? "session" : "request"}?
           </p>
@@ -95,7 +95,7 @@ export function BookingActions({
       )}
 
       {error && (
-        <p className="rounded-[12px] bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
+        <p className="bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
           {error}
         </p>
       )}

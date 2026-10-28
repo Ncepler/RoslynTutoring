@@ -33,14 +33,14 @@ export default function TermsPage() {
       <h2>How booking works</h2>
       <ul>
         <li>A booking starts as a request. Nothing is charged when you send it.</li>
-        <li>We match the request with one tutor who teaches the subject and is free at one of your chosen times. That tutor accepts or declines.</li>
+        <li>Your request goes to all of our tutors. One who teaches the subject and can take one of your chosen times claims it.</li>
         <li>
-          If the tutor accepts, we send a payment link. The time is held for you for up to {bookingRules.holdHours} hours,
+          Once a tutor claims it, we send a payment link. The time is held for you for up to {bookingRules.holdHours} hours,
           and always ends at least {bookingRules.holdEndsBeforeStartMinutes} minutes before the session. If it isn&apos;t
           paid by then, the time is released.
         </li>
         <li>The session is confirmed once payment goes through.</li>
-        <li>If the tutor declines, or no tutor responds in time, the request is closed and you aren&apos;t charged.</li>
+        <li>If no tutor can take any of your times, or nobody claims it in time, the request is closed and you aren&apos;t charged.</li>
       </ul>
 
       <h2>Prices and payment</h2>

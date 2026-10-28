@@ -76,10 +76,14 @@ export type Booking = {
   level: Level;
   testId: string | null;
   durationMinutes: number;
+  /** The times the student picked, in order of preference. */
   requestedStarts: string[];
-  startAt: string;
-  endAt: string;
-  tutorId: string;
+  /** Set when a tutor claims the request; null while it's open. */
+  startAt: string | null;
+  endAt: string | null;
+  tutorId: string | null;
+  /** An unclaimed request expires at this moment. */
+  claimDeadline: string | null;
   status: BookingStatus;
   priceCents: number;
   holdExpiresAt: string | null;

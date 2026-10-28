@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  canAccept,
-  canDecline,
   cancelQuote,
   checkoutExpiresAt,
   effectiveStatus,
@@ -40,22 +38,6 @@ describe("holdExpiresAt", () => {
   });
 });
 
-describe("canAccept / canDecline", () => {
-  it("accepts a pending request with time to pay", () => {
-    expect(canAccept({ status: "pending", startAt: inHours(10) }, now)).toEqual({ ok: true });
-  });
-
-  it("refuses when the session is too close to leave time to pay", () => {
-    expect(canAccept({ status: "pending", startAt: inHours(1.25) }, now).ok).toBe(false);
-  });
-
-  it("refuses anything that isn't pending", () => {
-    expect(canAccept({ status: "confirmed", startAt: inHours(10) }, now).ok).toBe(false);
-    expect(canDecline({ status: "declined" }).ok).toBe(false);
-    expect(canDecline({ status: "pending" }).ok).toBe(true);
-  });
-});
-
 describe("checkoutExpiresAt", () => {
   it("keeps holds inside Stripe's 30 minute to 24 hour window", () => {
     expect(checkoutExpiresAt(new Date(inHours(30)), now).getTime()).toBeLessThan(now.getTime() + 24 * H);
@@ -91,8 +73,8 @@ describe("cancelQuote", () => {
     });
   });
 
-  it("lets unpaid requests be cancelled any time before they happen", () => {
-    expect(cancelQuote({ status: "pending", amountPaidCents: 0, refundedCents: 0, startAt: inHours(1) }, now)).toEqual({
+  it("lets unpaid requests be cancelled any time", () => {
+    expect(cancelQuote({ status: "pending", amountPaidCents: 0, refundedCents: 0, startAt: null }, now)).toEqual({
       allowed: true,
       refundCents: 0,
       late: false,
@@ -106,21 +88,16 @@ describe("cancelQuote", () => {
 });
 
 describe("effectiveStatus", () => {
-  it("expires an unanswered request once there's no time left to accept and pay", () => {
-    expect(effectiveStatus({ status: "pending", startAt: inHours(1.4), holdExpiresAt: null }, now)).toBe("expired");
-    expect(effectiveStatus({ status: "pending", startAt: inHours(2), holdExpiresAt: null }, now)).toBe("pending");
-  });
-
   it("expires an unpaid hold after it runs out", () => {
     expect(
-      effectiveStatus({ status: "awaiting_payment", startAt: inHours(30), holdExpiresAt: inHours(-0.01) }, now),
+      effectiveStatus({ status: "awaiting_payment", claimDeadline: null, holdExpiresAt: inHours(-0.01) }, now),
     ).toBe("expired");
     expect(
-      effectiveStatus({ status: "awaiting_payment", startAt: inHours(30), holdExpiresAt: inHours(1) }, now),
+      effectiveStatus({ status: "awaiting_payment", claimDeadline: null, holdExpiresAt: inHours(1) }, now),
     ).toBe("awaiting_payment");
   });
 
   it("leaves confirmed bookings alone", () => {
-    expect(effectiveStatus({ status: "confirmed", startAt: inHours(-5), holdExpiresAt: null }, now)).toBe("confirmed");
+    expect(effectiveStatus({ status: "confirmed", claimDeadline: null, holdExpiresAt: null }, now)).toBe("confirmed");
   });
 });

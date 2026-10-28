@@ -14,10 +14,22 @@ export type BookingContext = {
   booking: Booking;
   student: Student;
   subject: Subject;
-  tutor: Tutor;
+  /** Null until a founder claims the request. */
+  tutor: Tutor | null;
   tutorPrivate: TutorPrivate | null;
   test: TestEvent | null;
 };
+
+/** A request a founder has claimed: it has a tutor and a fixed time. */
+export type ClaimedContext = BookingContext & {
+  tutor: Tutor;
+  booking: Booking & { tutorId: string; startAt: string; endAt: string };
+};
+
+export function asClaimed(ctx: BookingContext): ClaimedContext | null {
+  const b = ctx.booking;
+  return ctx.tutor && b.tutorId && b.startAt && b.endAt ? (ctx as ClaimedContext) : null;
+}
 
 export type RenderedEmail = { subject: string; html: string; text: string };
 
@@ -28,17 +40,23 @@ function subjectLabel(ctx: BookingContext) {
   return ctx.booking.level === "honors" ? `${ctx.subject.name} (Honors)` : ctx.subject.name;
 }
 
-function when(b: Booking) {
-  return `${formatDateTime(b.startAt)} to ${formatTime(b.endAt)} ET`;
+function pickedTimes(b: Booking) {
+  return b.requestedStarts.map((s, i) => `${i + 1}. ${formatDateTime(s)} ET`).join("\n");
 }
 
+/** Session details. Claimed bookings show the time and tutor; open requests show the picked times. */
 function details(ctx: BookingContext, extra: [string, string][] = []): EmailBlock {
-  const rows: [string, string][] = [
-    ["Subject", subjectLabel(ctx)],
-    ["When", when(ctx.booking)],
-    ["Length", `${ctx.booking.durationMinutes} minutes`],
-    ["Tutor", `${ctx.tutor.firstName} ${ctx.tutor.lastName}`],
-  ];
+  const claimed = asClaimed(ctx);
+  const rows: [string, string][] = [["Subject", subjectLabel(ctx)]];
+  if (claimed) {
+    rows.push(
+      ["When", `${formatDateTime(claimed.booking.startAt)} to ${formatTime(claimed.booking.endAt)} ET`],
+      ["Length", `${ctx.booking.durationMinutes} minutes`],
+      ["Tutor", `${claimed.tutor.firstName} ${claimed.tutor.lastName}`],
+    );
+  } else {
+    rows.push(["Times picked", pickedTimes(ctx.booking)], ["Length", `${ctx.booking.durationMinutes} minutes`]);
+  }
   if (ctx.test) rows.push(["Preparing for", ctx.test.course]);
   return { type: "details", rows: [...rows, ...extra] };
 }
@@ -55,42 +73,43 @@ export function requestReceived(ctx: BookingContext): RenderedEmail {
   return email(`We got your ${ctx.subject.name} request`, `Thanks, ${ctx.student.firstName}. Your request is in.`, [
     {
       type: "p",
-      text: `${ctx.tutor.firstName} has been matched to your request and will accept or decline soon. Nothing is charged yet.`,
+      text: "It went to all of our tutors. The first one who can take one of your times claims it, and you'll get an email with the time and a payment link. Nothing is charged yet.",
     },
     details(ctx, [["Price", formatPrice(ctx.booking.priceCents)]]),
     {
       type: "p",
-      text: `If ${ctx.tutor.firstName} accepts, you'll get a payment link. The time is held for you until you pay, up to ${bookingRules.holdHours} hours.`,
+      text: `Once a tutor claims it, the time is held for you until you pay, up to ${bookingRules.holdHours} hours.`,
     },
     { type: "button", label: "Check your request", href: bookingUrl(ctx.booking) },
   ]);
 }
 
-export function accepted(ctx: BookingContext): RenderedEmail {
+export function claimed(ctx: ClaimedContext): RenderedEmail {
   const hold = ctx.booking.holdExpiresAt ? formatDateTime(ctx.booking.holdExpiresAt) : null;
-  return email(`Accepted: pay to confirm your ${ctx.subject.name} session`, `${ctx.tutor.firstName} accepted your session.`, [
-    { type: "p", text: "Pay to lock it in. Your session is confirmed as soon as payment goes through." },
-    details(ctx, [["Price", formatPrice(ctx.booking.priceCents)]]),
-    { type: "button", label: `Pay ${formatPrice(ctx.booking.priceCents)}`, href: bookingUrl(ctx.booking) },
-    hold
-      ? { type: "note", text: `We're holding this time until ${hold} ET. After that it's released.` }
-      : { type: "note", text: "We're holding this time for a limited window." },
-  ]);
+  return email(
+    `${ctx.tutor.firstName} can do ${formatDateTime(ctx.booking.startAt)}: pay to confirm`,
+    `${ctx.tutor.firstName} will tutor you.`,
+    [
+      { type: "p", text: "Pay to lock in the time. Your session is confirmed as soon as payment goes through." },
+      details(ctx, [["Price", formatPrice(ctx.booking.priceCents)]]),
+      { type: "button", label: `Pay ${formatPrice(ctx.booking.priceCents)}`, href: bookingUrl(ctx.booking) },
+      hold
+        ? { type: "note", text: `We're holding this time until ${hold} ET. After that it's released.` }
+        : { type: "note", text: "We're holding this time for a limited window." },
+    ],
+  );
 }
 
 export function declined(ctx: BookingContext): RenderedEmail {
-  return email(`Your ${ctx.subject.name} request wasn't accepted`, "That time didn't work out.", [
-    {
-      type: "p",
-      text: `${ctx.tutor.firstName} couldn't take this session, so the time has been released. You haven't been charged.`,
-    },
+  return email(`No tutor could take your ${ctx.subject.name} request`, "Those times didn't work out.", [
+    { type: "p", text: "None of our tutors could take any of the times you picked, so the request is closed. You haven't been charged." },
     details(ctx),
-    { type: "p", text: "You can pick another time. Most of us have several afternoons open each week." },
-    { type: "button", label: "Pick another time", href: `${site.url}/book?subject=${ctx.subject.slug}` },
+    { type: "p", text: "You can try other times. Our tutors update their hours often." },
+    { type: "button", label: "Pick other times", href: `${site.url}/book?subject=${ctx.subject.slug}` },
   ]);
 }
 
-export function confirmed(ctx: BookingContext): RenderedEmail {
+export function confirmed(ctx: ClaimedContext): RenderedEmail {
   const zoom = ctx.tutorPrivate?.zoomLink;
   return email(`Confirmed: ${ctx.subject.name}, ${formatDateTime(ctx.booking.startAt)}`, "You're booked.", [
     { type: "p", text: "Payment received. Here's everything you need." },
@@ -111,7 +130,7 @@ export function confirmed(ctx: BookingContext): RenderedEmail {
   ]);
 }
 
-export function reminder(ctx: BookingContext): RenderedEmail {
+export function reminder(ctx: ClaimedContext): RenderedEmail {
   const zoom = ctx.tutorPrivate?.zoomLink;
   return email(`Today at ${formatTime(ctx.booking.startAt)}: ${ctx.subject.name} review`, "Your session is today.", [
     details(ctx, [["Zoom", zoom ?? "Your tutor will send the link."]]),
@@ -124,7 +143,7 @@ export function expired(ctx: BookingContext, reason: "no_response" | "unpaid"): 
   const text =
     reason === "unpaid"
       ? "The payment window closed before payment came through, so the time has been released. You haven't been charged."
-      : "No tutor was able to confirm this time soon enough, so the request has been closed. You haven't been charged.";
+      : "No tutor was able to claim one of your times soon enough, so the request has been closed. You haven't been charged.";
   return email(`Your ${ctx.subject.name} request expired`, "This request has expired.", [
     { type: "p", text },
     details(ctx),
@@ -133,7 +152,11 @@ export function expired(ctx: BookingContext, reason: "no_response" | "unpaid"): 
 }
 
 export function cancelled(ctx: BookingContext, refundCents: number): RenderedEmail {
-  const blocks: EmailBlock[] = [{ type: "p", text: "This session has been cancelled." }, details(ctx)];
+  const claimed = asClaimed(ctx);
+  const blocks: EmailBlock[] = [
+    { type: "p", text: claimed ? "This session has been cancelled." : "This request has been cancelled." },
+    details(ctx),
+  ];
   if (refundCents > 0) {
     blocks.push({
       type: "p",
@@ -146,14 +169,18 @@ export function cancelled(ctx: BookingContext, refundCents: number): RenderedEma
     });
   }
   blocks.push({ type: "button", label: "Book another time", href: `${site.url}/book?subject=${ctx.subject.slug}` });
-  return email(`Cancelled: ${ctx.subject.name}, ${formatDateTime(ctx.booking.startAt)}`, "Your session is cancelled.", blocks);
+  return email(
+    claimed ? `Cancelled: ${ctx.subject.name}, ${formatDateTime(claimed.booking.startAt)}` : `Cancelled: your ${ctx.subject.name} request`,
+    claimed ? "Your session is cancelled." : "Your request is cancelled.",
+    blocks,
+  );
 }
 
 // ---------------------------------------------------------------------------
 // To the tutor and the admins
 // ---------------------------------------------------------------------------
 
-export function tutorConfirmed(ctx: BookingContext): RenderedEmail {
+export function tutorConfirmed(ctx: ClaimedContext): RenderedEmail {
   return email(
     `Booked: ${ctx.subject.name} with ${ctx.student.firstName}, ${formatDateTime(ctx.booking.startAt)}`,
     `${ctx.student.firstName} paid. You're on.`,
@@ -168,7 +195,7 @@ export function tutorConfirmed(ctx: BookingContext): RenderedEmail {
   );
 }
 
-export function tutorReminder(ctx: BookingContext): RenderedEmail {
+export function tutorReminder(ctx: ClaimedContext): RenderedEmail {
   return email(
     `Today at ${formatTime(ctx.booking.startAt)}: ${ctx.subject.name} with ${ctx.student.firstName}`,
     "You have a session today.",
@@ -179,22 +206,47 @@ export function tutorReminder(ctx: BookingContext): RenderedEmail {
   );
 }
 
-export function adminNewRequest(ctx: BookingContext): RenderedEmail {
+/** Sent to all four founders. The first one who can take it claims it. */
+export function adminNewRequest(ctx: BookingContext, times: { start: string; free: string[] }[]): RenderedEmail {
   return email(
-    `New request: ${ctx.subject.name}, ${formatDateTime(ctx.booking.startAt)} (${ctx.tutor.firstName})`,
-    `New ${ctx.subject.name} request for ${ctx.tutor.firstName}.`,
+    `New request to claim: ${subjectLabel(ctx)}, ${ctx.booking.durationMinutes} min`,
+    `New ${ctx.subject.name} request. Who can take it?`,
     [
-      details(ctx, [
-        ["Student", `${ctx.student.firstName} ${ctx.student.lastName}, grade ${ctx.student.grade}`],
-        ["Price", formatPrice(ctx.booking.priceCents)],
-      ]),
-      { type: "p", text: `${ctx.tutor.firstName}, accept or decline from the dashboard. Payment is only requested after you accept.` },
-      { type: "button", label: "Accept or decline", href: adminUrl() },
+      {
+        type: "details",
+        rows: [
+          ["Subject", subjectLabel(ctx)],
+          ["Length", `${ctx.booking.durationMinutes} minutes · ${formatPrice(ctx.booking.priceCents)}`],
+          ["Student", `${ctx.student.firstName} ${ctx.student.lastName}, grade ${ctx.student.grade}`],
+          ...(ctx.test ? ([["Preparing for", ctx.test.course]] as [string, string][]) : []),
+          ...times.map(
+            (t, i) =>
+              [
+                `Choice ${i + 1}`,
+                `${formatDateTime(t.start)} ET${t.free.length ? ` (free by your hours: ${t.free.join(", ")})` : ""}`,
+              ] as [string, string],
+          ),
+        ],
+      },
+      { type: "p", text: "Open the dashboard and claim one of the student's times. Payment is requested only after someone claims it." },
+      { type: "button", label: "Claim it", href: adminUrl() },
     ],
   );
 }
 
-export function adminPaid(ctx: BookingContext): RenderedEmail {
+/** Tells everyone a request is taken, so nobody else chases it. */
+export function adminClaimed(ctx: ClaimedContext): RenderedEmail {
+  return email(
+    `Claimed by ${ctx.tutor.firstName}: ${ctx.subject.name}, ${formatDateTime(ctx.booking.startAt)}`,
+    `${ctx.tutor.firstName} claimed the ${ctx.subject.name} request.`,
+    [
+      details(ctx, [["Student", `${ctx.student.firstName} ${ctx.student.lastName}`]]),
+      { type: "note", text: "The student and parent have the payment link. Nothing for anyone else to do." },
+    ],
+  );
+}
+
+export function adminPaid(ctx: ClaimedContext): RenderedEmail {
   return email(
     `Paid: ${ctx.subject.name}, ${formatDateTime(ctx.booking.startAt)} (${ctx.tutor.firstName})`,
     `${formatPrice(ctx.booking.amountPaidCents)} received.`,
@@ -203,9 +255,10 @@ export function adminPaid(ctx: BookingContext): RenderedEmail {
 }
 
 export function adminCancelled(ctx: BookingContext, by: string, refundCents: number): RenderedEmail {
+  const claimed = asClaimed(ctx);
   return email(
-    `Cancelled by ${by}: ${ctx.subject.name}, ${formatDateTime(ctx.booking.startAt)} (${ctx.tutor.firstName})`,
-    `Session cancelled by ${by}.`,
+    `Cancelled by ${by}: ${ctx.subject.name}${claimed ? `, ${formatDateTime(claimed.booking.startAt)} (${claimed.tutor.firstName})` : " request"}`,
+    `${claimed ? "Session" : "Request"} cancelled by ${by}.`,
     [
       details(ctx, [
         ["Student", `${ctx.student.firstName} ${ctx.student.lastName}`],

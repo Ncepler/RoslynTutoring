@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { acceptAction, cancelAction, declineAction } from "@/app/admin/actions";
+import { cancelAction, claimAction, closeAction } from "@/app/admin/actions";
 import { Spinner } from "@/components/icons";
 
 function dollars(cents: number) {
@@ -11,62 +11,121 @@ function dollars(cents: number) {
 
 type Result = { ok: boolean; message?: string };
 
+function useRun() {
+  const [pending, start] = useTransition();
+  const [busy, setBusy] = useState<string | null>(null);
+  function run(label: string, fn: () => Promise<Result>, onOk?: () => void) {
+    setBusy(label);
+    start(async () => {
+      const r = await fn();
+      if (r.ok) {
+        toast.success(r.message ?? "Done.");
+        onOk?.();
+      } else toast.error(r.message ?? "Something went wrong.");
+      setBusy(null);
+    });
+  }
+  return { pending, busy, run };
+}
+
+/**
+ * An open request: each of the student's preferred times, with a Claim button
+ * for the ones this founder can take. First to claim wins.
+ */
+export function ClaimPanel({
+  id,
+  options,
+  teaches,
+  deadline,
+}: {
+  id: string;
+  options: { start: string; label: string; claimable: boolean; reason: string | null; outsideHours: boolean }[];
+  teaches: boolean;
+  deadline: string | null;
+}) {
+  const { pending, busy, run } = useRun();
+  const [confirmClose, setConfirmClose] = useState(false);
+  return (
+    <div className="mt-4 border-t border-line pt-4">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-sm font-semibold">The student&apos;s times, in order</p>
+        {deadline && <p className="text-xs text-muted">Expires {deadline} if nobody claims it</p>}
+      </div>
+      {!teaches && (
+        <p className="mb-2 bg-warn-soft px-3 py-2 text-sm text-warn">This isn&apos;t one of your listed subjects.</p>
+      )}
+      <ol className="divide-y divide-line border-y border-line">
+        {options.map((o, i) => (
+          <li key={o.start} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
+            <span className="tabular w-5 text-sm font-semibold text-muted">{i + 1}</span>
+            <span className="min-w-0 flex-1 text-sm">
+              {o.label}
+              {o.outsideHours && <span className="ml-2 text-xs text-muted">outside your usual hours</span>}
+            </span>
+            {o.claimable ? (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                disabled={pending}
+                onClick={() => run(o.start, () => claimAction(id, o.start))}
+              >
+                {busy === o.start && <Spinner size={15} />}
+                Claim
+              </button>
+            ) : (
+              <span className="text-xs text-muted">{o.reason}</span>
+            )}
+          </li>
+        ))}
+      </ol>
+      <div className="mt-3">
+        {!confirmClose ? (
+          <button type="button" className="text-sm font-medium text-muted hover:text-ink" onClick={() => setConfirmClose(true)}>
+            Nobody can take it…
+          </button>
+        ) : (
+          <div className="swap-in flex flex-wrap items-center gap-2 bg-bg-subtle p-3 text-sm">
+            <span className="flex-1">Close it and tell the student none of these times work?</span>
+            <button type="button" className="btn btn-danger btn-sm" disabled={pending} onClick={() => run("close", () => closeAction(id))}>
+              {busy === "close" && <Spinner size={15} />}
+              Close request
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmClose(false)}>
+              Keep open
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function BookingCardActions({
   id,
   status,
-  mine,
-  tutorFirst,
   policyRefundCents,
   refundableCents,
 }: {
   id: string;
   status: string;
-  mine: boolean;
-  tutorFirst: string;
   policyRefundCents: number | null;
   refundableCents: number;
 }) {
-  const [pending, start] = useTransition();
-  const [busy, setBusy] = useState<string | null>(null);
+  const { pending, busy, run } = useRun();
   const [cancelOpen, setCancelOpen] = useState(false);
   const [refund, setRefund] = useState<"policy" | "full" | "none">("policy");
   const [reason, setReason] = useState("");
 
-  function run(label: string, fn: () => Promise<Result>) {
-    setBusy(label);
-    start(async () => {
-      const r = await fn();
-      if (r.ok) toast.success(r.message ?? "Done.");
-      else toast.error(r.message ?? "Something went wrong.");
-      setBusy(null);
-      if (r.ok) setCancelOpen(false);
-    });
-  }
-
   return (
     <div className="mt-4 border-t border-line pt-4">
-      {status === "pending" && (
-        <div className="flex flex-wrap items-center gap-2">
-          <button type="button" className="btn btn-primary btn-sm" disabled={pending} onClick={() => run("accept", () => acceptAction(id))}>
-            {busy === "accept" && <Spinner size={15} />}
-            Accept
-          </button>
-          <button type="button" className="btn btn-secondary btn-sm" disabled={pending} onClick={() => run("decline", () => declineAction(id))}>
-            {busy === "decline" && <Spinner size={15} />}
-            Decline
-          </button>
-          {!mine && <span className="text-sm text-muted">Assigned to {tutorFirst}. Respond on their behalf only if you&apos;ve checked with them.</span>}
-        </div>
-      )}
-
-      {status !== "pending" && !cancelOpen && (
+      {!cancelOpen && (
         <button type="button" className="text-sm font-medium text-danger" onClick={() => setCancelOpen(true)}>
-          Cancel booking…
+          Cancel {status === "confirmed" ? "session" : "booking"}…
         </button>
       )}
 
-      {status !== "pending" && cancelOpen && (
-        <div className="swap-in space-y-3 rounded-[14px] bg-bg-subtle p-4">
+      {cancelOpen && (
+        <div className="swap-in space-y-3 bg-bg-subtle p-4">
           <p className="text-sm font-semibold">Cancel this booking?</p>
           {refundableCents > 0 ? (
             <fieldset className="space-y-1.5 text-sm">
@@ -100,7 +159,9 @@ export function BookingCardActions({
               type="button"
               className="btn btn-danger btn-sm"
               disabled={pending}
-              onClick={() => run("cancel", () => cancelAction({ bookingId: id, refund, reason: reason || undefined }))}
+              onClick={() =>
+                run("cancel", () => cancelAction({ bookingId: id, refund, reason: reason || undefined }), () => setCancelOpen(false))
+              }
             >
               {busy === "cancel" && <Spinner size={15} />}
               Cancel booking

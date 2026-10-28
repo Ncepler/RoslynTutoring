@@ -1,56 +1,57 @@
 import Link from "next/link";
 import { bookingRules, pricing, site } from "@/config/site";
-import { ArrowRight, Card, Check, Video } from "@/components/icons";
+import { ArrowRight, Check } from "@/components/icons";
 import { FaqList } from "@/components/site/faq-list";
-import { Section, SectionHeading } from "@/components/site/section";
+import { Section } from "@/components/site/section";
 import { TutorCard } from "@/components/site/tutor-card";
 import { FAQ } from "@/content/faq";
 import { formatPrice } from "@/lib/booking/policy";
 import { teachableSubjectIds, type Catalog } from "@/lib/data/catalog";
-import { daysBetween, formatLocalDate, relativeDays } from "@/lib/time";
+import { daysBetween, relativeDays } from "@/lib/time";
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function UpcomingTests({ catalog }: { catalog: Catalog }) {
   const subjects = new Map(catalog.subjects.map((s) => [s.id, s]));
   const tests = catalog.tests.filter((t) => subjects.has(t.subjectId)).slice(0, 8);
 
   return (
-    <Section id="tests" labelledBy="tests-title">
-      <SectionHeading
-        id="tests-title"
-        title="Upcoming tests"
-        lead="The tests we know are coming up. Most students book a review a few days before. Yours doesn't need to be on the list to book."
-      />
+    <Section
+      id="tests"
+      title="Upcoming tests"
+      lead="The tests we know are coming up. Most students book a review a few days before. Yours doesn't need to be on the list."
+    >
       {tests.length > 0 ? (
-        <ul className="card mt-10 divide-y divide-line overflow-hidden p-0">
+        <ul className="border-t border-line">
           {tests.map((t) => {
             const subject = subjects.get(t.subjectId)!;
-            const days = daysBetween(catalog.today, t.testDate);
-            const [, month, day] = t.testDate.split("-");
-            const monthLabel = new Date(Date.UTC(2000, Number(month) - 1, 1)).toLocaleString("en-US", {
-              month: "short",
-              timeZone: "UTC",
-            });
+            const [y, m, d] = t.testDate.split("-").map(Number);
+            const weekday = WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
             return (
-              <li key={t.id} className="row-hover flex flex-wrap items-center gap-x-5 gap-y-3 px-5 py-4 transition-colors sm:flex-nowrap sm:px-6">
-                <div className="grid w-12 shrink-0 place-items-center rounded-[14px] border border-line py-1.5 text-center">
-                  <span className="text-[0.6875rem] font-semibold tracking-[0.04em] text-accent-text uppercase">
-                    {monthLabel}
-                  </span>
-                  <span className="tabular -mt-0.5 text-xl leading-tight font-[650] tracking-[-0.03em]">
-                    {Number(day)}
+              <li
+                key={t.id}
+                className="row-hover grid grid-cols-[4.5rem_1fr] items-center gap-x-5 gap-y-3 border-b border-line py-4 transition-colors sm:grid-cols-[4.5rem_1fr_auto_auto] sm:px-2"
+              >
+                <div className="font-display leading-none">
+                  <span className="tabular block text-[1.75rem] font-[750] tracking-[-0.04em]">{d}</span>
+                  <span className="t-label mt-1 block">
+                    {MONTHS[m - 1]} · {weekday}
                   </span>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold tracking-[-0.012em]">{t.course}</p>
+                <div className="min-w-0">
+                  <p className="font-semibold">{t.course}</p>
                   <p className="text-sm text-muted">
                     {subject.name}
-                    {t.level ? ` · ${t.level === "honors" ? "Honors" : "Regular"}` : ""} · {formatLocalDate(t.testDate)}
+                    {t.level ? ` · ${t.level === "honors" ? "Honors" : "Regular"}` : ""}
                   </p>
                 </div>
-                <span className="tabular hidden text-sm font-medium text-ink-2 sm:inline">{relativeDays(days)}</span>
+                <span className="tabular hidden text-sm text-ink-2 sm:block">
+                  {relativeDays(daysBetween(catalog.today, t.testDate))}
+                </span>
                 <Link
                   href={`/book?subject=${subject.slug}&test=${t.id}`}
-                  className="btn btn-secondary btn-sm w-full sm:w-auto"
+                  className="btn btn-secondary btn-sm col-span-2 sm:col-span-1"
                   aria-label={`Book a review for ${t.course}`}
                 >
                   Book a review
@@ -60,7 +61,7 @@ export function UpcomingTests({ catalog }: { catalog: Catalog }) {
           })}
         </ul>
       ) : (
-        <div className="card mt-10 flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col items-start gap-4 border-y border-line py-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-ink-2">No tests are posted right now. You can still book a review for any subject.</p>
           <Link href="/book" className="btn btn-primary btn-sm">
             See open times
@@ -78,18 +79,17 @@ function countWord(n: number) {
 
 export function TutorsSection({ catalog }: { catalog: Catalog }) {
   return (
-    <Section tone="subtle" labelledBy="tutors-title">
-      <SectionHeading
-        id="tutors-title"
-        title="Your tutors"
-        lead={`${countWord(catalog.tutors.length)} ${site.school} students who started this together and tutor every session themselves. Each has earned many 100s on Regents exams.`}
-        action={
-          <Link href="/tutors" className="btn btn-ghost btn-sm text-accent-text">
-            All tutors <ArrowRight size={16} />
-          </Link>
-        }
-      />
-      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <Section
+      title="Your tutors"
+      tone="subtle"
+      lead={`${countWord(catalog.tutors.length)} ${site.school} students who started this together and tutor every session themselves. Each has earned many 100s on Regents exams.`}
+      action={
+        <Link href="/tutors" className="link inline-flex items-center gap-1 font-semibold">
+          All tutors <ArrowRight size={16} />
+        </Link>
+      }
+    >
+      <div className="grid gap-x-8 sm:grid-cols-2">
         {catalog.tutors.map((t) => (
           <TutorCard key={t.id} tutor={t} subjects={catalog.subjects} />
         ))}
@@ -98,84 +98,75 @@ export function TutorsSection({ catalog }: { catalog: Catalog }) {
   );
 }
 
-export function SubjectsAndPricing({ catalog }: { catalog: Catalog }) {
+export function SubjectsSection({ catalog }: { catalog: Catalog }) {
   const teachable = teachableSubjectIds(catalog);
   return (
-    <Section labelledBy="subjects-title">
-      <div className="grid gap-12 lg:grid-cols-[1.2fr_1fr] lg:gap-16">
-        <div>
-          <SectionHeading
-            id="subjects-title"
-            title="Subjects"
-            lead="Regular and honors. Pick one when you book and we'll match you with a tutor who teaches it."
-          />
-          <ul className="mt-8 grid gap-2 sm:grid-cols-2">
-            {catalog.subjects.map((s) => {
-              const open = teachable.has(s.id);
-              return (
-                <li key={s.id}>
-                  <Link
-                    href={`/book?subject=${s.slug}`}
-                    className="group flex min-h-16 items-center justify-between gap-3 rounded-[18px] border border-line bg-surface px-4 py-3 transition-[border-color,transform] duration-150 active:scale-[0.98]"
-                  >
-                    <span>
-                      <span className="block font-semibold tracking-[-0.012em]">{s.name}</span>
-                      <span className="block text-sm text-muted">
-                        {open ? (s.hasHonors ? "Regular and honors" : "Regular") : "No tutor yet"}
-                      </span>
-                    </span>
-                    <ArrowRight size={17} className="text-muted transition-transform duration-200 group-hover:translate-x-0.5" />
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-        <div>
-          <h2 className="t-h2">Simple pricing</h2>
-          <p className="t-lead mt-4">One price per session. No packages or sign-up fees.</p>
-          <div className="mt-8 grid grid-cols-2 gap-3">
-            {([30, 60] as const).map((m) => (
-              <div key={m} className={`card p-5 ${m === 60 ? "ring-1 ring-accent/30" : ""}`}>
-                <p className="t-label">{m === 30 ? "30 minutes" : "1 hour"}</p>
-                <p className="tabular mt-2 text-[2.5rem] leading-none font-[650] tracking-[-0.045em]">
-                  {formatPrice(pricing[m])}
-                </p>
-                <p className="mt-2 text-sm text-muted">{m === 30 ? "A focused review of one topic" : "A full test review"}</p>
-              </div>
-            ))}
+    <Section
+      title="Subjects"
+      lead="Regular and honors. Pick one when you book and you'll only see times a tutor for it is free."
+    >
+      <ul className="grid border-t border-line sm:grid-cols-2 sm:gap-x-8">
+        {catalog.subjects.map((s) => {
+          const open = teachable.has(s.id);
+          return (
+            <li key={s.id} className="border-b border-line">
+              <Link href={`/book?subject=${s.slug}`} className="group flex min-h-16 items-center justify-between gap-3 py-3">
+                <span>
+                  <span className="block font-semibold">{s.name}</span>
+                  <span className="block text-sm text-muted">
+                    {open ? (s.hasHonors ? "Regular and honors" : "Regular") : "No tutor yet"}
+                  </span>
+                </span>
+                <ArrowRight size={18} className="text-muted transition-colors group-hover:text-accent-text" />
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </Section>
+  );
+}
+
+export function PricingSection() {
+  return (
+    <Section title="Pricing" tone="subtle" lead="One price per session. No packages, sign-up fees or subscriptions.">
+      <div className="grid border-t border-line sm:grid-cols-2">
+        {([30, 60] as const).map((m, i) => (
+          <div key={m} className={`py-6 ${i === 1 ? "border-t border-line sm:border-t-0 sm:border-l sm:pl-8" : "sm:pr-8"}`}>
+            <p className="t-label">{m === 30 ? "30 minutes" : "1 hour"}</p>
+            <p className="font-display tabular mt-2 text-[3.5rem] leading-none font-[750] tracking-[-0.05em]">
+              {formatPrice(pricing[m])}
+            </p>
+            <p className="mt-3 text-ink-2">{m === 30 ? "A focused review of one topic." : "A full review before a test."}</p>
           </div>
-          <ul className="mt-6 space-y-2.5 text-ink-2">
-            {[
-              "Pay only after a tutor accepts",
-              `Free cancellation up to ${bookingRules.freeCancelHours} hours before`,
-              "Secure checkout through Stripe",
-            ].map((line) => (
-              <li key={line} className="flex items-start gap-2.5">
-                <Check size={18} className="mt-0.5 shrink-0 text-accent-text" />
-                {line}
-              </li>
-            ))}
-          </ul>
-        </div>
+        ))}
       </div>
+      <ul className="space-y-2.5 border-t border-line pt-6 text-ink-2">
+        {[
+          "Pay only after a tutor claims your request",
+          `Free cancellation up to ${bookingRules.freeCancelHours} hours before`,
+          "Secure checkout through Stripe",
+        ].map((line) => (
+          <li key={line} className="flex items-start gap-3">
+            <Check size={18} className="mt-0.5 shrink-0 text-accent-text" />
+            {line}
+          </li>
+        ))}
+      </ul>
     </Section>
   );
 }
 
 const STEPS = [
   {
-    icon: ArrowRight,
     title: "Pick a subject and a few times",
     body: "Choose 30 minutes or an hour, then up to three times that work. You'll only see times when a tutor is free.",
   },
   {
-    icon: Card,
-    title: "A tutor accepts, then you pay",
-    body: "A tutor who teaches your subject confirms, and you and your parent get a payment link. Nothing is charged before that.",
+    title: "A tutor claims it, then you pay",
+    body: "Your request goes to all of our tutors. Whoever can take one of your times claims it, and you and your parent get a payment link.",
   },
   {
-    icon: Video,
     title: "Meet on Zoom",
     body: "You get the Zoom link and a calendar invite. Bring your notes and what's on the test.",
   },
@@ -183,15 +174,19 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <Section tone="subtle" labelledBy="how-title">
-      <SectionHeading id="how-title" title="How it works" />
-      <ol className="mt-10 grid gap-4 md:grid-cols-3">
+    <Section title="How it works">
+      <ol className="grid border-t border-line md:grid-cols-3">
         {STEPS.map((step, i) => (
-          <li key={step.title} className="card p-6">
-            <span className="tabular grid size-9 place-items-center rounded-full bg-accent text-sm font-semibold text-on-accent">
+          <li
+            key={step.title}
+            className={`py-6 ${i > 0 ? "border-t border-line md:border-t-0 md:border-l md:pl-6" : ""} ${
+              i < STEPS.length - 1 ? "md:pr-6" : ""
+            }`}
+          >
+            <span className="font-display tabular block text-[2.5rem] leading-none font-[750] tracking-[-0.04em] text-accent-text">
               {i + 1}
             </span>
-            <h3 className="t-h3 mt-5">{step.title}</h3>
+            <h3 className="t-h3 mt-4">{step.title}</h3>
             <p className="mt-2 text-ink-2">{step.body}</p>
           </li>
         ))}
@@ -202,35 +197,34 @@ export function HowItWorks() {
 
 export function FaqTeaser() {
   return (
-    <Section labelledBy="faq-title">
-      <div className="grid gap-10 lg:grid-cols-[1fr_1.6fr] lg:gap-16">
-        <div>
-          <h2 id="faq-title" className="t-h2">
-            Questions
-          </h2>
-          <p className="t-lead mt-4">The things students and parents ask us most.</p>
-          <Link href="/faq" className="btn btn-secondary mt-6">
-            Read all questions
-          </Link>
-        </div>
-        <FaqList items={FAQ.slice(0, 5)} />
-      </div>
+    <Section
+      title="Questions"
+      tone="subtle"
+      lead="The things students and parents ask us most."
+      action={
+        <Link href="/faq" className="btn btn-secondary">
+          Read all questions
+        </Link>
+      }
+    >
+      <FaqList items={FAQ.slice(0, 5)} />
     </Section>
   );
 }
 
 export function ClosingCta() {
   return (
-    <section className="px-4 pb-16 sm:px-6 md:pb-24">
-      <div className="relative isolate mx-auto max-w-6xl overflow-hidden rounded-[28px] bg-accent px-6 py-14 text-on-accent sm:px-12 md:py-20">
-        <div aria-hidden="true" className="absolute inset-0 -z-10 opacity-40 [background-image:linear-gradient(rgb(255_255_255/0.12)_1px,transparent_1px),linear-gradient(90deg,rgb(255_255_255/0.12)_1px,transparent_1px)] [background-size:32px_32px] [mask-image:radial-gradient(ellipse_70%_90%_at_85%_20%,#000_20%,transparent_70%)]" />
-        <h2 className="t-h2 max-w-2xl">Book a review before your next test.</h2>
-        <p className="mt-4 max-w-xl text-lg text-white/85">
-          It takes about two minutes. You only pay once a tutor accepts.
-        </p>
-        <Link href="/book" className="btn btn-lg mt-8 bg-white text-[#0b1526] hover:bg-white/90">
-          Book a session <ArrowRight size={18} />
-        </Link>
+    <section className="bg-accent text-on-accent">
+      <div className="wrap grid gap-8 py-16 md:py-20 lg:grid-cols-12 lg:items-end">
+        <div className="lg:col-span-8">
+          <h2 className="t-h2">Book a review before your next test.</h2>
+          <p className="mt-4 max-w-xl text-lg text-white/90">It takes about two minutes. You only pay once a tutor claims it.</p>
+        </div>
+        <div className="lg:col-span-4 lg:text-right">
+          <Link href="/book" className="btn btn-lg border-white bg-white text-[#0f172a] hover:bg-white/90">
+            Book a session <ArrowRight size={18} />
+          </Link>
+        </div>
       </div>
     </section>
   );

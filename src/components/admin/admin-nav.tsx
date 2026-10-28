@@ -25,13 +25,13 @@ export function AdminNav({ openReports }: { openReports: number }) {
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`relative inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium whitespace-nowrap transition-colors ${
-                  active ? "bg-ink text-bg" : "text-ink-2 hover:bg-bg-subtle hover:text-ink"
+                className={`relative inline-flex min-h-10 items-center gap-1.5 px-3.5 text-sm font-medium whitespace-nowrap transition-colors ${
+ active ? "bg-ink text-bg" : "text-ink-2 hover:bg-bg-subtle hover:text-ink"
                 }`}
               >
                 {item.label}
                 {item.href === "/admin/reports" && openReports > 0 && (
-                  <span className="tabular grid min-w-5 place-items-center rounded-full bg-danger px-1 text-[0.6875rem] font-bold text-white">
+                  <span className="tabular grid min-w-5 place-items-center bg-danger px-1 text-[0.6875rem] font-bold text-white">
                     {openReports}
                   </span>
                 )}

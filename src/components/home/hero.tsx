@@ -1,74 +1,98 @@
 import Link from "next/link";
 import { bookingRules, pricing, site } from "@/config/site";
-import { ArrowRight, Video } from "@/components/icons";
+import { ArrowRight } from "@/components/icons";
 import { formatPrice } from "@/lib/booking/policy";
 import type { Catalog } from "@/lib/data/catalog";
-import { daysBetween, formatLocalDate, relativeDays } from "@/lib/time";
-import { HeroStack, type HeroStackProps } from "./hero-stack";
+import { daysBetween, formatLocalDate, formatMinute, relativeDays } from "@/lib/time";
+
+function list(names: string[]) {
+  return names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : (names[0] ?? "");
+}
 
 /**
- * Layer stack, bottom to top (all code, no images):
- *   0  graph-paper plane, faded at the edges            (code, static)
- *   1  headline, subcopy, CTAs                           (code, CSS entrance; h1 is the LCP)
- *   2  price card, back of the stack, smallest + softest (code, parallax depth 0.35)
- *   3  tutors card, middle                               (code, parallax depth 0.65)
- *   4  next-test card, front, crisp, deepest shadow      (code, parallax depth 1.0, the signature)
+ * Type-only hero. Left: the promise and the two actions. Right: the facts a
+ * parent wants before booking, as a ruled table, ending with the next real
+ * test on the schedule.
  */
 export function Hero({ catalog }: { catalog: Catalog }) {
   const subjectsById = new Map(catalog.subjects.map((s) => [s.id, s]));
   const next = catalog.tests.find((t) => subjectsById.has(t.subjectId));
   const nextSubject = next ? subjectsById.get(next.subjectId) : undefined;
+  const grades = `${site.grades[0]} to ${site.grades[site.grades.length - 1]}`;
 
-  const stack: HeroStackProps = {
-    next:
-      next && nextSubject
-        ? {
-            course: next.course,
-            subject: nextSubject.name,
-            date: formatLocalDate(next.testDate),
-            when: relativeDays(daysBetween(catalog.today, next.testDate)),
-            href: `/book?subject=${nextSubject.slug}&test=${next.id}`,
-          }
-        : null,
-    subjects: catalog.subjects.slice(0, 4).map((s) => ({ name: s.name, href: `/book?subject=${s.slug}` })),
-    tutors: catalog.tutors.map((t) => ({ first: t.firstName, initials: `${t.firstName[0]}${t.lastName[0]}` })),
-    prices: { half: formatPrice(pricing[30]), hour: formatPrice(pricing[60]) },
-  };
+  const facts: { label: string; value: React.ReactNode }[] = [
+    {
+      label: "Price",
+      value: (
+        <>
+          <span className="tabular">{formatPrice(pricing[30])}</span> for 30 minutes,{" "}
+          <span className="tabular">{formatPrice(pricing[60])}</span> for an hour
+        </>
+      ),
+    },
+    { label: "Format", value: "One-on-one on Zoom" },
+    {
+      label: "When",
+      value: `${bookingRules.allowWeekends ? "Any day" : "Weekdays"} from ${formatMinute(bookingRules.earliestStartMinute)}`,
+    },
+    { label: "For", value: `${site.school} students in grades ${grades}` },
+    { label: "Tutors", value: list(catalog.tutors.map((t) => t.firstName)) },
+  ];
 
   return (
-    <section className="relative isolate overflow-hidden">
-      <div aria-hidden="true" className="grid-paper absolute inset-0 -z-10" />
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pt-10 pb-16 sm:px-6 md:pt-14 md:pb-24 lg:grid-cols-[1.3fr_1fr] lg:gap-6">
-        <div className="max-w-[40rem]">
-          <p
-            className="enter inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-[0.8125rem] font-medium text-ink-2 shadow-[var(--shadow-sm)]"
-            style={{ "--i": 0 } as React.CSSProperties}
-          >
-            <Video size={15} className="text-accent-text" />
-            One-on-one on Zoom · Grades {site.grades[0]} to {site.grades[site.grades.length - 1]}
+    <section className="border-b border-line">
+      <div className="wrap grid gap-12 pt-12 pb-16 md:pt-20 md:pb-24 lg:grid-cols-12 lg:gap-8">
+        <div className="lg:col-span-7">
+          <p className="t-label enter" style={{ "--i": 0 } as React.CSSProperties}>
+            Student-run tutoring in {site.area}
           </p>
           <h1 className="t-display enter-tf mt-5" style={{ "--i": 1 } as React.CSSProperties}>
-            Test coming up?{" "}
-            <span className="text-muted">Review with a {site.school} student who&apos;s been there.</span>
+            Test coming up? Review with a {site.school} student who&apos;s been there.
           </h1>
-          <p className="t-lead enter mt-5 max-w-[34rem]" style={{ "--i": 2 } as React.CSSProperties}>
-            Bring your notes and what&apos;s on the test. Your tutor is a {site.school} student who has earned many
-            100s on the Regents. {formatPrice(pricing[30])} for 30 minutes, {formatPrice(pricing[60])} for an hour.
+          <p className="t-lead enter mt-6 max-w-xl" style={{ "--i": 2 } as React.CSSProperties}>
+            Bring your notes and what&apos;s on the test. Every tutor is a {site.school} student who has earned many
+            100s on the Regents, and you only pay once one of them claims your request.
           </p>
-          <div className="enter mt-8 flex flex-wrap items-center gap-3" style={{ "--i": 3 } as React.CSSProperties}>
-            <Link href="/book" className="btn btn-primary btn-lg group">
-              Book a review
-              <ArrowRight size={18} className="transition-transform duration-200 group-hover:translate-x-0.5" />
+          <div className="enter mt-8 flex flex-wrap gap-3" style={{ "--i": 3 } as React.CSSProperties}>
+            <Link href="/book" className="btn btn-primary btn-lg">
+              Book a review <ArrowRight size={18} />
             </Link>
             <Link href="/tutors" className="btn btn-secondary btn-lg">
               Meet the tutors
             </Link>
           </div>
           <p className="enter mt-5 text-sm text-muted" style={{ "--i": 4 } as React.CSSProperties}>
-            You only pay after a tutor accepts. Free cancellation up to {bookingRules.freeCancelHours} hours before.
+            Free cancellation up to {bookingRules.freeCancelHours} hours before. No accounts, no packages.
           </p>
         </div>
-        <HeroStack {...stack} />
+
+        <aside className="enter lg:col-span-4 lg:col-start-9" style={{ "--i": 3 } as React.CSSProperties} aria-label="At a glance">
+          <dl className="rule-top">
+            {facts.map((f) => (
+              <div key={f.label} className="grid grid-cols-[6.5rem_1fr] gap-4 border-b border-line py-3.5">
+                <dt className="t-label pt-0.5">{f.label}</dt>
+                <dd className="font-medium">{f.value}</dd>
+              </div>
+            ))}
+            {next && nextSubject && (
+              <div className="grid grid-cols-[6.5rem_1fr] gap-4 border-b border-line py-3.5">
+                <dt className="t-label pt-0.5">Next test</dt>
+                <dd>
+                  <span className="block font-medium">{next.course}</span>
+                  <span className="block text-sm text-muted">
+                    {formatLocalDate(next.testDate)} · {relativeDays(daysBetween(catalog.today, next.testDate))}
+                  </span>
+                  <Link
+                    href={`/book?subject=${nextSubject.slug}&test=${next.id}`}
+                    className="link mt-1.5 inline-flex items-center gap-1 text-sm font-semibold"
+                  >
+                    Book a review for it <ArrowRight size={15} />
+                  </Link>
+                </dd>
+              </div>
+            )}
+          </dl>
+        </aside>
       </div>
     </section>
   );

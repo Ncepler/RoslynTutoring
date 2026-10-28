@@ -26,12 +26,11 @@ async function Shell({ children }: { children: React.ReactNode }) {
   return (
     <>
       {session.preview && <PreviewBanner />}
-      <header className="sticky top-0 z-40 isolate border-b border-line pt-[env(safe-area-inset-top)]">
-        <div aria-hidden="true" className="glass absolute inset-0 -z-10" />
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 sm:px-6">
+      <header className="sticky top-0 z-40 border-b border-line bg-bg pt-[env(safe-area-inset-top)]">
+        <div className="wrap flex flex-wrap items-center gap-x-6 gap-y-2 py-3">
           <div className="flex items-center gap-2.5">
             <Wordmark />
-            <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent-soft-ink">Admin</span>
+            <span className="border border-line-strong px-1.5 py-0.5 text-xs font-semibold text-ink-2">Admin</span>
           </div>
           <div className="order-last w-full lg:order-none lg:w-auto">
             <AdminNav openReports={openReports} />
@@ -47,7 +46,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main id="main" className="mx-auto max-w-6xl px-4 pt-8 pb-20 sm:px-6">
+      <main id="main" className="wrap px-4 pt-8 pb-20 sm:px-6">
         {children}
       </main>
     </>
@@ -56,8 +55,8 @@ async function Shell({ children }: { children: React.ReactNode }) {
 
 function ShellFallback() {
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-24 sm:px-6">
-      <div className="h-40 animate-pulse rounded-[22px] bg-surface" />
+    <div className="wrap px-4 pt-24 sm:px-6">
+      <div className="h-40 animate-pulse bg-surface" />
     </div>
   );
 }

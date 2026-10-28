@@ -34,12 +34,12 @@ No student accounts. Students book as guests.
 2. Site shows available times. Student picks one or more preferred times and a length (30 or 60 min).
 3. Student enters first name, last name, grade (8 to 10), email.
    **(default)** Also parent/guardian name and email, plus a consent checkbox. Parents are involved and consent is required.
-4. The system assigns one tutor who teaches that subject and is free at that time. **(default)** Tie-break: whoever has the fewest sessions this period, to keep the 4-way split fair.
-5. The request goes to the admin dashboard. All 4 admins are notified (see Notifications).
-6. A tutor accepts or declines.
-7. **Payment happens only after a tutor accepts.** **(default)** Stripe Checkout link sent to the student and parent. Hold the slot 24 hours, then expire it. Booking is confirmed when paid.
+4. No tutor is auto-assigned (Noah's decision, replacing the earlier fewest-sessions default). The request goes to the admin dashboard and all 4 admins are notified by email (texts if a paid SMS provider is ever picked).
+5. Any admin can claim the request by picking one of the student's preferred times. First claim wins; the others are told it's taken.
+6. If nobody can take any of the times, an admin closes the request and the student is told. Unclaimed requests expire automatically.
+7. **Payment happens only after a tutor claims it.** **(default)** Stripe Checkout link sent to the student and parent. Hold the slot 24 hours, then expire it. Booking is confirmed when paid.
 8. Confirmation email, then a reminder before the session. A Google Calendar event is created for the tutor.
-9. On decline, tell the student and release the slot. **(default)** Do not auto-reassign.
+9. When a request is closed or expires, tell the student. Nothing is charged.
 
 Tutor availability: **(default)** each tutor sets a weekly availability from their dashboard. Availability is never shown publicly.
 
@@ -71,7 +71,7 @@ Pages (my call): Home, Book, Tutors, FAQ, Contact with a "Report a problem" form
 
 ## Design
 
-Sleek, blue and white, professional, clean Apple-style. Leans startup more than school.
+Sleek, blue and white, professional. Leans startup more than school. Visual system: Minimalism & Swiss Style from the ui-ux-pro-max skill (`design-system/roslyn-tutoring/MASTER.md`): grid, hairline rules, square corners, no gradients, no shadows, one accent colour.
 
 - **No imagery or stock photos.** Carry it with type, spacing, and color.
 - Light and dark mode. Default to the device's setting, with a manual toggle that persists.

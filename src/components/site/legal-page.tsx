@@ -19,10 +19,12 @@ export function LegalPage({
   return (
     <>
       <PageIntro title={title} lead={lead} />
-      <article className="prose-doc mx-auto max-w-3xl px-4 py-12 sm:px-6 md:py-16">
-        <p className="t-label">Last updated {updated}</p>
-        {children}
-      </article>
+      <div className="wrap grid py-12 md:py-16 lg:grid-cols-12">
+        <article className="prose-doc lg:col-span-8 lg:col-start-5">
+          <p className="t-label">Last updated {updated}</p>
+          {children}
+        </article>
+      </div>
     </>
   );
 }

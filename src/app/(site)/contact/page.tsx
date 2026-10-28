@@ -18,8 +18,8 @@ export default function ContactPage() {
           {site.contactEmail}
         </a>
       </PageIntro>
-      <section className="mx-auto grid max-w-6xl gap-12 px-4 py-14 sm:px-6 md:py-20 lg:grid-cols-[1fr_1.4fr]">
-        <div>
+      <section className="wrap grid gap-12 py-14 md:py-20 lg:grid-cols-12">
+        <div className="lg:col-span-4">
           <h2 id="report" className="t-h3 flex items-center gap-2.5 text-2xl">
             <Flag size={22} className="text-accent-text" />
             Report a problem
@@ -28,7 +28,7 @@ export default function ContactPage() {
             Something wrong with a booking, a payment, a session or this site? Tell us here. Every report goes to all four
             founders. You can leave your name and email out if you prefer.
           </p>
-          <div className="mt-8 flex gap-3 rounded-[18px] border border-line bg-bg-subtle p-5">
+          <div className="mt-8 flex gap-3 border border-line bg-bg-subtle p-5">
             <Shield size={22} className="mt-0.5 shrink-0 text-accent-text" />
             <p className="text-sm leading-relaxed text-ink-2">
               If anyone ever makes you feel unsafe, stop the session and tell a parent or another trusted adult. If someone
@@ -36,7 +36,9 @@ export default function ContactPage() {
             </p>
           </div>
         </div>
-        <ReportForm />
+        <div className="lg:col-span-7 lg:col-start-6">
+          <ReportForm />
+        </div>
       </section>
     </>
   );

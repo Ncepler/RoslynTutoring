@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export default function BookingPage(props: PageProps<"/booking/[token]">) {
   return (
     <div className="mx-auto max-w-2xl px-4 pt-10 pb-20 sm:px-6 md:pt-16">
-      <Suspense fallback={<div className="h-96 animate-pulse rounded-[22px] bg-bg-subtle" />}>
+      <Suspense fallback={<div className="h-96 animate-pulse bg-bg-subtle" />}>
         <BookingStatus {...props} />
       </Suspense>
     </div>
@@ -26,21 +26,21 @@ export default function BookingPage(props: PageProps<"/booking/[token]">) {
 }
 
 const HEADLINE: Record<BookingView["status"], (v: BookingView) => { title: string; body: string }> = {
-  pending: (v) => ({
-    title: "Request sent.",
-    body: `${v.tutorFirstName} will accept or decline soon. You'll get an email either way. Nothing is charged yet.`,
+  pending: () => ({
+    title: "Waiting for a tutor to claim it.",
+    body: "Your request went to all of our tutors. When one of them claims one of your times, you'll get an email with the time and a payment link. Nothing is charged yet.",
   }),
   awaiting_payment: (v) => ({
-    title: `${v.tutorFirstName} accepted. Pay to confirm.`,
+    title: `${v.tutorFirstName ?? "A tutor"} can do it. Pay to confirm.`,
     body: "Your session is confirmed as soon as payment goes through.",
   }),
   confirmed: () => ({
     title: "You're booked.",
     body: "Your confirmation email has the Zoom link and a calendar file.",
   }),
-  declined: (v) => ({
-    title: "That time didn't work out.",
-    body: `${v.tutorFirstName} couldn't take this session, so the time was released. You weren't charged.`,
+  declined: () => ({
+    title: "Those times didn't work out.",
+    body: "None of our tutors could take the times you picked, so the request was closed. You weren't charged.",
   }),
   expired: () => ({
     title: "This request expired.",
@@ -50,10 +50,10 @@ const HEADLINE: Record<BookingView["status"], (v: BookingView) => { title: strin
 };
 
 const BADGE: Record<BookingView["status"], { label: string; className: string }> = {
-  pending: { label: "Waiting for tutor", className: "bg-accent-soft text-accent-soft-ink" },
+  pending: { label: "Waiting for a tutor", className: "bg-accent-soft text-accent-soft-ink" },
   awaiting_payment: { label: "Awaiting payment", className: "bg-warn-soft text-warn" },
   confirmed: { label: "Confirmed", className: "bg-success-soft text-success" },
-  declined: { label: "Declined", className: "bg-bg-subtle text-muted" },
+  declined: { label: "Closed", className: "bg-bg-subtle text-muted" },
   expired: { label: "Expired", className: "bg-bg-subtle text-muted" },
   cancelled: { label: "Cancelled", className: "bg-bg-subtle text-muted" },
 };
@@ -71,7 +71,7 @@ async function BookingStatus({ params, searchParams }: PageProps<"/booking/[toke
 
   return (
     <div className="swap-in">
-      <span className={`inline-flex rounded-full px-3 py-1 text-[0.8125rem] font-semibold ${badge.className}`}>
+      <span className={`inline-flex px-3 py-1 text-[0.8125rem] font-semibold ${badge.className}`}>
         {badge.label}
       </span>
       <h1 className="t-h2 mt-4">{justPaid ? "Payment received." : head.title}</h1>
@@ -89,19 +89,32 @@ async function BookingStatus({ params, searchParams }: PageProps<"/booking/[toke
       {justPaid && <PaidPoller />}
 
       <dl className="card mt-8 divide-y divide-line p-0">
-        <Row icon={<Calendar size={18} />} label="When">
-          {formatDayLong(view.startAt)}
-          <span className="block text-muted">
-            {formatTime(view.startAt)} to {formatTime(view.endAt)} ET · {view.durationMinutes} minutes
-          </span>
-        </Row>
+        {view.startAt && view.endAt ? (
+          <Row icon={<Calendar size={18} />} label="When">
+            {formatDayLong(view.startAt)}
+            <span className="block text-muted">
+              {formatTime(view.startAt)} to {formatTime(view.endAt)} ET · {view.durationMinutes} minutes
+            </span>
+          </Row>
+        ) : (
+          <Row icon={<Calendar size={18} />} label={`Times you picked · ${view.durationMinutes} minutes`}>
+            <ol className="space-y-0.5">
+              {view.requestedStarts.map((s, i) => (
+                <li key={s}>
+                  <span className="mr-2 font-semibold text-accent-text">{i + 1}</span>
+                  {formatDateTime(s)} ET
+                </li>
+              ))}
+            </ol>
+          </Row>
+        )}
         <Row icon={<Check size={18} />} label="Subject">
           {view.subjectName}
           {view.level === "honors" ? " (Honors)" : ""}
           {view.testCourse && <span className="block text-muted">Preparing for {view.testCourse}</span>}
         </Row>
         <Row icon={<Video size={18} />} label="Tutor">
-          {view.tutorFirstName}, on Zoom
+          {view.tutorFirstName ? `${view.tutorFirstName}, on Zoom` : "Not claimed yet"}
         </Row>
         <Row icon={<Clock size={18} />} label="Price">
           {view.amountPaidCents > 0 ? `${formatCents(view.amountPaidCents)} paid` : formatPrice(view.priceCents)}

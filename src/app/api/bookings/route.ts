@@ -3,7 +3,8 @@ import { bookingRequestSchema, fieldErrors } from "@/lib/booking/validation";
 import { createBookingRequest } from "@/lib/data/bookings";
 
 /**
- * The only way the public creates anything: a booking request. Validated
+ * The only way the public creates anything: a booking request. It goes to
+ * every founder and one of them claims it. Validated
  * here, then written with the service role (students can't write to the
  * database directly; RLS has no public insert policies).
  */
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
   try {
     const result = await createBookingRequest(parsed.data);
     if (!result.ok) return NextResponse.json({ error: result.message }, { status: result.status });
-    return NextResponse.json({ token: result.token, startAt: result.startAt, preferenceIndex: result.preferenceIndex });
+    return NextResponse.json({ token: result.token, requestedStarts: result.requestedStarts });
   } catch (err) {
     console.error("[bookings] create failed", err);
     return NextResponse.json({ error: "Something went wrong on our end. Please try again." }, { status: 500 });

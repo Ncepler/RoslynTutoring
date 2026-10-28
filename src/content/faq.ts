@@ -11,7 +11,7 @@ export const FAQ: Faq[] = [
   },
   {
     q: "How much does it cost?",
-    a: `${formatPrice(pricing[30])} for 30 minutes or ${formatPrice(pricing[60])} for an hour. You only pay after a tutor accepts your request. There are no packages, sign-up fees or subscriptions.`,
+    a: `${formatPrice(pricing[30])} for 30 minutes or ${formatPrice(pricing[60])} for an hour. You only pay after a tutor claims your request. There are no packages, sign-up fees or subscriptions.`,
   },
   {
     q: "How do sessions work?",
@@ -42,7 +42,7 @@ export const FAQ: Faq[] = [
     a: `No. ${site.name} is an independent business run by students. It isn't a school club and isn't affiliated with the ${site.school} School District.`,
   },
   {
-    q: "What if I book and no tutor accepts?",
-    a: "You'll get an email saying the time didn't work out and you won't be charged. The time is released and you can pick another one.",
+    q: "How do I get matched with a tutor?",
+    a: "Your request goes to all of our tutors at once. Whoever can take one of your times claims it, and you get an email with the time, their name and a payment link. If none of your times work for anyone, we'll tell you and you won't be charged.",
   },
 ];

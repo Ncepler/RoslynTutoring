@@ -25,7 +25,7 @@ async function NotAdminNotice({ searchParams }: Pick<PageProps<"/admin/login">, 
   const { error } = await searchParams;
   if (error !== "not-admin") return null;
   return (
-    <p className="mt-6 rounded-[12px] bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
+    <p className="mt-6 bg-danger-soft px-4 py-3 text-sm text-danger" role="alert">
       That account isn&apos;t linked to a founder. Check that the tutor email in Supabase matches the login email.
     </p>
   );

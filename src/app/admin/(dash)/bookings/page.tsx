@@ -4,7 +4,7 @@ import { BookingCard } from "@/components/admin/booking-card";
 import { Empty, LinkTabs, PageTitle } from "@/components/admin/ui";
 import { STATUS_LABEL } from "@/lib/booking/policy";
 import { loadAdminData, requireAdmin } from "@/lib/data/admin";
-import { toAdminBookings } from "@/lib/data/admin-view";
+import { toAdminBookings, whenOf } from "@/lib/data/admin-view";
 import type { BookingStatus } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Bookings" };
@@ -26,11 +26,11 @@ export default async function BookingsPage(props: PageProps<"/admin/bookings">) 
   const session = await requireAdmin();
   const data = await loadAdminData(session);
   const now = new Date();
-  const rows = toAdminBookings(data, now)
+  const rows = toAdminBookings(data, now, session.tutor.id)
     .filter((b) => filter.match(b.status, b.past))
-    .filter((b) => tutor === "all" || b.tutorId === tutor)
+    .filter((b) => tutor === "all" || (tutor === "open" ? b.tutorId === null : b.tutorId === tutor))
     .filter((b) => !q || `${b.student.name} ${b.student.email} ${b.parent.name} ${b.parent.email} ${b.subjectName}`.toLowerCase().includes(q))
-    .sort((a, b) => (filter.value === "active" ? a.startAt.localeCompare(b.startAt) : b.startAt.localeCompare(a.startAt)));
+    .sort((a, b) => (filter.value === "active" ? whenOf(a).localeCompare(whenOf(b)) : whenOf(b).localeCompare(whenOf(a))));
 
   const href = (p: Record<string, string>) => `/admin/bookings?${new URLSearchParams({ status: filter.value, tutor, ...(q ? { q } : {}), ...p })}`;
 
@@ -45,6 +45,7 @@ export default async function BookingsPage(props: PageProps<"/admin/bookings">) 
             current={tutor}
             items={[
               { value: "all", label: "Everyone", href: href({ tutor: "all" }) },
+              { value: "open", label: "Unclaimed", href: href({ tutor: "open" }) },
               ...data.tutors.map((t) => ({ value: t.id, label: t.firstName, href: href({ tutor: t.id }) })),
             ]}
           />

@@ -79,7 +79,7 @@ export function TestList({ rows }: { rows: Row[] }) {
           </div>
           <button
             type="button"
-            className="grid size-9 place-items-center rounded-full text-muted hover:bg-bg-subtle active:scale-95"
+            className="grid size-9 place-items-center text-muted hover:bg-bg-subtle active:scale-95"
             disabled={pending}
             aria-label={`Remove ${t.course}`}
             onClick={() =>

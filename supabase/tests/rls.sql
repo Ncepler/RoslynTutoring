@@ -74,3 +74,21 @@ select 'noah test added' as check, count(*) from tests;
 update bookings set status='awaiting_payment' where public_token='tok1';
 select 'noah updated booking' as check, status from bookings where public_token='tok1';
 reset role;
+
+\echo '=== CLAIM MODEL (service role)'
+\echo '--- open request with no tutor or time must succeed'
+insert into bookings (public_token, student_id, subject_id, duration_minutes, requested_starts, claim_deadline, price_cents, consent_at)
+select 'open1', '10000000-0000-0000-0000-000000000001', s.id, 60, array['2026-11-05T21:00Z'::timestamptz, '2026-11-06T21:00Z'::timestamptz], '2026-11-06T19:30Z', 6000, now()
+from subjects s where s.slug = 'geometry';
+select 'open request saved' as check, count(*) from bookings where public_token = 'open1' and tutor_id is null and start_at is null;
+\echo '--- marking it awaiting_payment without a tutor must fail'
+update bookings set status = 'awaiting_payment' where public_token = 'open1';
+\echo '--- claiming it (tutor + time + awaiting_payment) must succeed'
+update bookings set tutor_id = (select id from tutors where first_name = 'Alex'),
+  start_at = '2026-11-05T21:00Z', end_at = '2026-11-05T22:00Z', status = 'awaiting_payment'
+where public_token = 'open1' and tutor_id is null;
+select 'claimed' as check, status from bookings where public_token = 'open1';
+\echo '--- Noah claiming a time that overlaps his own session must fail'
+insert into bookings (public_token, student_id, subject_id, duration_minutes, requested_starts, price_cents, consent_at, tutor_id, start_at, end_at, status)
+select 'open2', '10000000-0000-0000-0000-000000000001', s.id, 30, array['2026-11-02T21:00Z'::timestamptz], 4000, now(), t.id, '2026-11-02T21:00Z', '2026-11-02T21:30Z', 'awaiting_payment'
+from subjects s, tutors t where s.slug = 'geometry' and t.first_name = 'Noah';

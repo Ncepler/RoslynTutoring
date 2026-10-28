@@ -38,7 +38,8 @@ export function periodFor(kind: PeriodKind, now: Date, tz: string = TZ): Period 
   };
 }
 
-export function inPeriod(iso: string, period: Period): boolean {
+export function inPeriod(iso: string | null, period: Period): boolean {
+  if (!iso) return false;
   const t = new Date(iso).getTime();
   if (period.start && t < period.start.getTime()) return false;
   if (period.end && t >= period.end.getTime()) return false;
@@ -112,7 +113,7 @@ export function summarizeMoney(params: {
 
   for (const b of params.bookings) {
     if (!inPeriod(b.startAt, period)) continue;
-    const row = rows.get(b.tutorId);
+    const row = b.tutorId ? rows.get(b.tutorId) : undefined;
     if (b.amountPaidCents > 0) {
       gross += b.amountPaidCents;
       fees += b.feeCents;
@@ -143,20 +144,6 @@ export function summarizeMoney(params: {
     sessions,
     perTutor: params.tutors.map((t) => rows.get(t.id)!),
   };
-}
-
-/** Sessions per tutor in a period, for the fewest-sessions tie-break. */
-export function sessionLoad(
-  bookings: Pick<Booking, "tutorId" | "status" | "startAt">[],
-  period: Period,
-): Map<string, number> {
-  const load = new Map<string, number>();
-  for (const b of bookings) {
-    if (b.status !== "pending" && b.status !== "awaiting_payment" && b.status !== "confirmed") continue;
-    if (!inPeriod(b.startAt, period)) continue;
-    load.set(b.tutorId, (load.get(b.tutorId) ?? 0) + 1);
-  }
-  return load;
 }
 
 export function formatCents(cents: number): string {

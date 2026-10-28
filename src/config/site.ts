@@ -44,7 +44,7 @@ export type BookingRules = {
   minLeadHours: number;
   /** How many preferred times a student can pick. */
   maxPreferences: number;
-  /** After a tutor accepts, the slot is held this many hours for payment. */
+  /** After a tutor claims a request, the slot is held this many hours for payment. */
   holdHours: number;
   /** The hold always ends this many minutes before the session starts. */
   holdEndsBeforeStartMinutes: number;

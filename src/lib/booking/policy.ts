@@ -1,6 +1,6 @@
 /**
- * Booking rules that depend on the clock: holds, accepting, cancelling,
- * and lazily expiring stale requests. Pure functions; pass `now`.
+ * Booking rules that depend on the clock: claiming, holds, cancelling, and
+ * lazily expiring stale requests. Pure functions; pass `now`.
  */
 
 import { bookingRules, pricing, type BookingRules } from "@/config/site";
@@ -21,7 +21,7 @@ export function formatPrice(cents: number): string {
 }
 
 /**
- * The slot is held for payment for `holdHours` after acceptance, but never
+ * The slot is held for payment for `holdHours` after it's claimed, but never
  * past an hour before the session, so an unpaid slot doesn't sit idle.
  */
 export function holdExpiresAt(
@@ -34,28 +34,56 @@ export function holdExpiresAt(
   return new Date(Math.min(byHold, byStart));
 }
 
-/** Students need at least this long to pay after a tutor accepts. */
+/** Students need at least this long to pay after a tutor claims a request. */
 export const MIN_PAYMENT_WINDOW_MINUTES = 30;
 
 export type Check = { ok: true } | { ok: false; reason: string };
 
-export function canAccept(
-  b: Pick<Booking, "status" | "startAt">,
+/**
+ * The earliest a session can start and still be claimed: the tutor claims,
+ * the student gets at least MIN_PAYMENT_WINDOW_MINUTES to pay, and the hold
+ * ends `holdEndsBeforeStartMinutes` before the session.
+ */
+export function claimCutoff(
   now: Date,
-  rules: Pick<BookingRules, "holdHours" | "holdEndsBeforeStartMinutes"> = bookingRules,
+  rules: Pick<BookingRules, "holdEndsBeforeStartMinutes"> = bookingRules,
+): Date {
+  return new Date(now.getTime() + (rules.holdEndsBeforeStartMinutes + MIN_PAYMENT_WINDOW_MINUTES) * MINUTE);
+}
+
+/** An open request expires once even its latest preferred time can't be claimed in time. */
+export function claimDeadline(
+  requestedStarts: string[],
+  rules: Pick<BookingRules, "holdEndsBeforeStartMinutes"> = bookingRules,
+): Date {
+  const latest = Math.max(...requestedStarts.map((s) => new Date(s).getTime()));
+  return new Date(latest - (rules.holdEndsBeforeStartMinutes + MIN_PAYMENT_WINDOW_MINUTES) * MINUTE);
+}
+
+/** Whether a founder can claim this request at `start`, one of the student's times. */
+export function canClaim(
+  b: Pick<Booking, "status" | "tutorId" | "requestedStarts">,
+  start: string,
+  now: Date,
+  rules: Pick<BookingRules, "holdEndsBeforeStartMinutes"> = bookingRules,
 ): Check {
-  if (b.status !== "pending") return { ok: false, reason: "This request isn't waiting for a response." };
-  const hold = holdExpiresAt(now, new Date(b.startAt), rules);
-  if (hold.getTime() - now.getTime() < MIN_PAYMENT_WINDOW_MINUTES * MINUTE) {
-    return { ok: false, reason: "The session starts too soon to leave time for payment." };
+  if (b.status !== "pending") return { ok: false, reason: "This request is no longer open." };
+  if (b.tutorId) return { ok: false, reason: "Someone already claimed this request." };
+  const t = new Date(start).getTime();
+  if (Number.isNaN(t) || !b.requestedStarts.some((s) => new Date(s).getTime() === t)) {
+    return { ok: false, reason: "That isn't one of the student's times." };
+  }
+  if (t < claimCutoff(now, rules).getTime()) {
+    return { ok: false, reason: "That time is too soon to leave the student time to pay." };
   }
   return { ok: true };
 }
 
-export function canDecline(b: Pick<Booking, "status">): Check {
-  return b.status === "pending"
+/** Admins can close an open request when nobody can take it. */
+export function canClose(b: Pick<Booking, "status" | "tutorId">): Check {
+  return b.status === "pending" && !b.tutorId
     ? { ok: true }
-    : { ok: false, reason: "This request isn't waiting for a response." };
+    : { ok: false, reason: "This request is no longer open." };
 }
 
 /**
@@ -88,7 +116,7 @@ export function cancelQuote(
   if (b.status !== "confirmed") {
     return { allowed: false, reason: "This booking is no longer active." };
   }
-  const start = new Date(b.startAt).getTime();
+  const start = b.startAt ? new Date(b.startAt).getTime() : 0;
   if (now.getTime() >= start) {
     return { allowed: false, reason: "This session has already started." };
   }
@@ -98,27 +126,15 @@ export function cancelQuote(
 }
 
 /**
- * A pending request can no longer be accepted once its session starts before
- * this instant (there would be no time left to pay).
- */
-export function pendingCutoff(
-  now: Date,
-  rules: Pick<BookingRules, "holdEndsBeforeStartMinutes"> = bookingRules,
-): Date {
-  return new Date(now.getTime() + (rules.holdEndsBeforeStartMinutes + MIN_PAYMENT_WINDOW_MINUTES) * MINUTE);
-}
-
-/**
  * The status a booking really has right now, even if the cleanup job hasn't
- * run yet: an unanswered request whose time has come, or an unpaid hold that
+ * run yet: an open request past its claim deadline, or an unpaid hold that
  * ran out, is expired.
  */
 export function effectiveStatus(
-  b: Pick<Booking, "status" | "startAt" | "holdExpiresAt">,
+  b: Pick<Booking, "status" | "claimDeadline" | "holdExpiresAt">,
   now: Date,
-  rules: Pick<BookingRules, "holdEndsBeforeStartMinutes"> = bookingRules,
 ): BookingStatus {
-  if (b.status === "pending" && new Date(b.startAt).getTime() <= pendingCutoff(now, rules).getTime()) {
+  if (b.status === "pending" && b.claimDeadline && new Date(b.claimDeadline).getTime() <= now.getTime()) {
     return "expired";
   }
   if (b.status === "awaiting_payment" && b.holdExpiresAt && new Date(b.holdExpiresAt).getTime() <= now.getTime()) {
@@ -128,14 +144,14 @@ export function effectiveStatus(
 }
 
 export function isPast(b: Pick<Booking, "endAt">, now: Date) {
-  return new Date(b.endAt).getTime() <= now.getTime();
+  return b.endAt !== null && new Date(b.endAt).getTime() <= now.getTime();
 }
 
 export const STATUS_LABEL: Record<BookingStatus, string> = {
-  pending: "Waiting for a tutor",
-  awaiting_payment: "Accepted, awaiting payment",
+  pending: "Waiting for a tutor to claim it",
+  awaiting_payment: "Claimed, awaiting payment",
   confirmed: "Confirmed",
-  declined: "Declined",
+  declined: "Closed",
   expired: "Expired",
   cancelled: "Cancelled",
 };

@@ -23,7 +23,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       // Private mode: the choice just won't persist.
     }
     for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
-      meta.setAttribute("content", next === "dark" ? "#070b14" : "#ffffff");
+      meta.setAttribute("content", next === "dark" ? "#020617" : "#ffffff");
     }
     window.setTimeout(() => root.classList.remove("theme-transition"), 280);
   }
@@ -32,7 +32,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     <button
       type="button"
       onClick={toggle}
-      className={`theme-toggle grid size-10 place-items-center rounded-full text-ink-2 transition-transform duration-150 active:scale-95 ${className}`}
+      className={`theme-toggle grid size-10 place-items-center text-ink-2 transition-colors duration-150 ${className}`}
       aria-label="Switch between light and dark mode"
     >
       <Sun size={19} className="theme-icon-sun" />

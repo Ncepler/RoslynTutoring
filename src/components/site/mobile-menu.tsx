@@ -27,7 +27,7 @@ export function MobileMenu() {
       <button
         ref={buttonRef}
         type="button"
-        className="grid size-10 place-items-center rounded-full text-ink transition-transform duration-150 active:scale-95"
+        className="grid size-10 place-items-center text-ink"
         aria-expanded={open}
         aria-controls={panelId}
         aria-label={open ? "Close menu" : "Open menu"}
@@ -45,7 +45,7 @@ export function MobileMenu() {
         id={panelId}
         aria-label="Main"
         data-open={open}
-        className="menu-panel card absolute right-3 left-3 top-[calc(var(--header-h)+env(safe-area-inset-top)+4px)] z-40 p-2"
+        className="menu-panel absolute inset-x-0 top-full z-40 border-b border-line bg-bg px-4 pb-3"
       >
         <ul>
           {NAV.map((item) => (
@@ -53,7 +53,7 @@ export function MobileMenu() {
               <Link
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className="flex min-h-12 items-center rounded-[14px] px-4 text-[1.0625rem] font-medium tracking-[-0.01em] text-ink active:bg-bg-subtle"
+                className="font-display flex min-h-14 items-center border-b border-line text-[1.25rem] font-[650] tracking-[-0.02em] text-ink last:border-b-0 active:text-accent-text"
               >
                 {item.label}
               </Link>

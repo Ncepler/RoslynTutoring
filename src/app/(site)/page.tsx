@@ -3,7 +3,8 @@ import {
   ClosingCta,
   FaqTeaser,
   HowItWorks,
-  SubjectsAndPricing,
+  PricingSection,
+  SubjectsSection,
   TutorsSection,
   UpcomingTests,
 } from "@/components/home/sections";
@@ -18,7 +19,8 @@ export default async function HomePage() {
       <Hero catalog={catalog} />
       <UpcomingTests catalog={catalog} />
       <TutorsSection catalog={catalog} />
-      <SubjectsAndPricing catalog={catalog} />
+      <SubjectsSection catalog={catalog} />
+      <PricingSection />
       <HowItWorks />
       <FaqTeaser />
       <ClosingCta />

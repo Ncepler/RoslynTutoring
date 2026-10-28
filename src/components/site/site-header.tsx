@@ -6,24 +6,17 @@ import { Wordmark } from "./wordmark";
 
 export function SiteHeader() {
   return (
-    <header className="site-header sticky top-0 z-40 isolate pt-[env(safe-area-inset-top)]">
-      {/* Glass lives on its own layer: backdrop-filter on the header itself would trap the
-          mobile menu's fixed scrim inside the header box. */}
-      <div aria-hidden="true" className="glass absolute inset-0 -z-10" />
-      <div className="mx-auto flex h-[var(--header-h)] max-w-6xl items-center gap-6 px-4 sm:px-6">
+    <header className="sticky top-0 z-40 border-b border-line bg-bg pt-[env(safe-area-inset-top)]">
+      <div className="wrap flex h-[var(--header-h)] items-center gap-8">
         <Wordmark />
-        <nav aria-label="Main" className="ml-4 hidden items-center gap-1 md:flex">
+        <nav aria-label="Main" className="hidden items-center gap-7 md:flex">
           {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="btn btn-ghost btn-sm font-medium text-ink-2"
-            >
+            <Link key={item.href} href={item.href} className="text-[0.9375rem] font-medium text-ink-2 transition-colors hover:text-ink">
               {item.label}
             </Link>
           ))}
         </nav>
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
           <Link href="/book" className="btn btn-primary btn-sm">
             Book a session

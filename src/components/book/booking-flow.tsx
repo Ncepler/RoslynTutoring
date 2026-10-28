@@ -94,7 +94,7 @@ function validateDetails(d: Details): Record<string, string> {
   return e;
 }
 
-type Done = { token: string; startAt: string; preferenceIndex: number };
+type Done = { token: string; requestedStarts: string[] };
 
 export function BookingFlow(props: BookingFlowProps) {
   const params = useSearchParams();
@@ -341,7 +341,7 @@ export function BookingFlow(props: BookingFlowProps) {
         </div>
 
         {formError && (
-          <p className="swap-in mt-6 rounded-[14px] bg-danger-soft px-4 py-3 text-sm font-medium text-danger" role="alert">
+          <p className="swap-in mt-6 bg-danger-soft px-4 py-3 text-sm font-medium text-danger" role="alert">
             {formError}
           </p>
         )}
@@ -364,12 +364,12 @@ export function BookingFlow(props: BookingFlowProps) {
       </aside>
 
       {/* Mobile: a bar pinned to the bottom, clear of the home indicator. */}
-      <div className="glass fixed inset-x-0 bottom-0 z-30 border-t border-line px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
+      <div className="bg-bg fixed inset-x-0 bottom-0 z-30 border-t border-line px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
         <div className="mx-auto flex max-w-xl items-center gap-3">
           {step > 0 && (
             <button
               type="button"
-              className="grid size-12 shrink-0 place-items-center rounded-full border border-line-strong bg-surface active:scale-95"
+              className="grid size-12 shrink-0 place-items-center border border-line-strong bg-surface active:scale-95"
               onClick={() => goTo(step - 1)}
               aria-label="Back"
             >
@@ -432,15 +432,15 @@ function Progress({ step, onJump }: { step: number; onJump: (i: number) => void 
               aria-current={i === step ? "step" : undefined}
               className="group w-full text-left disabled:cursor-default"
             >
-              <span className="block h-1 overflow-hidden rounded-full bg-line">
+              <span className="block h-1 overflow-hidden bg-line">
                 <span
-                  className="block h-full origin-left rounded-full bg-accent transition-transform duration-500 ease-[var(--ease-out)] motion-reduce:transition-none"
+                  className="block h-full origin-left bg-accent transition-transform duration-500 ease-[var(--ease-out)] motion-reduce:transition-none"
                   style={{ transform: `scaleX(${i <= step ? 1 : 0})` }}
                 />
               </span>
               <span
                 className={`mt-2 hidden text-[0.8125rem] font-medium sm:block ${
-                  i === step ? "text-ink" : i < step ? "text-ink-2 group-hover:text-ink" : "text-muted"
+ i === step ? "text-ink" : i < step ? "text-ink-2 group-hover:text-ink" : "text-muted"
                 }`}
               >
                 {label}
@@ -482,7 +482,7 @@ function SubjectStep(props: {
 }) {
   return (
     <div className="space-y-8">
-      <StepTitle sub="We'll match you with a tutor who teaches it.">What do you need help with?</StepTitle>
+      <StepTitle sub="You'll only see times when a tutor who teaches it is free.">What do you need help with?</StepTitle>
       <fieldset>
         <legend className="sr-only">Subject</legend>
         <div className="grid gap-2.5 sm:grid-cols-2">
@@ -491,8 +491,8 @@ function SubjectStep(props: {
             return (
               <label
                 key={s.id}
-                className={`relative flex min-h-[4.25rem] cursor-pointer items-center justify-between gap-3 rounded-[18px] border bg-surface px-4 py-3 transition-[border-color,box-shadow,transform] duration-150 active:scale-[0.985] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent ${
-                  selected ? "border-accent shadow-[0_0_0_3px_var(--accent-soft)]" : "border-line"
+                className={`relative flex min-h-[4.25rem] cursor-pointer items-center justify-between gap-3 border bg-surface px-4 py-3 transition-[border-color,box-shadow,transform] duration-150 active:scale-[0.985] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent ${
+ selected ? "border-accent bg-accent-soft" : "border-line"
                 }`}
               >
                 <input
@@ -509,8 +509,8 @@ function SubjectStep(props: {
                 </span>
                 <span
                   aria-hidden="true"
-                  className={`grid size-6 shrink-0 place-items-center rounded-full border transition-colors ${
-                    selected ? "border-accent bg-accent text-on-accent" : "border-line-strong"
+                  className={`grid size-6 shrink-0 place-items-center border transition-colors ${
+ selected ? "border-accent bg-accent text-on-accent" : "border-line-strong"
                   }`}
                 >
                   {selected && <Check size={14} strokeWidth={2.5} />}
@@ -522,7 +522,7 @@ function SubjectStep(props: {
       </fieldset>
 
       {props.subject && !props.subject.teachable && (
-        <div className="swap-in rounded-[18px] border border-line bg-bg-subtle p-5" role="status">
+        <div className="swap-in border border-line bg-bg-subtle p-5" role="status">
           <p className="font-semibold">Nothing available for {props.subject.name} right now.</p>
           <p className="mt-1 text-ink-2">
             None of our tutors teach it yet. Check back soon, or pick another subject.
@@ -603,7 +603,7 @@ function TimeStep(props: {
   return (
     <div className="space-y-8">
       <StepTitle
-        sub={`Pick up to ${props.maxPreferences} times that work, in order of preference. We'll book the first one a tutor can take. All times are New York time.`}
+        sub={`Pick up to ${props.maxPreferences} times that work, in order of preference. More times means a better chance one works. All times are New York time.`}
       >
         When works for you?
       </StepTitle>
@@ -623,7 +623,7 @@ function TimeStep(props: {
       </div>
 
       {props.error ? (
-        <div className="rounded-[18px] border border-line bg-bg-subtle p-5" role="alert">
+        <div className="border border-line bg-bg-subtle p-5" role="alert">
           <p className="font-semibold">{props.error}</p>
           <button type="button" className="btn btn-secondary btn-sm mt-3" onClick={props.onRetry}>
             Try again
@@ -632,7 +632,7 @@ function TimeStep(props: {
       ) : props.slots === undefined ? (
         <SlotsSkeleton />
       ) : days.length === 0 ? (
-        <div className="swap-in rounded-[18px] border border-line bg-bg-subtle p-5" role="status">
+        <div className="swap-in border border-line bg-bg-subtle p-5" role="status">
           <p className="font-semibold">Nothing available for {props.subject.name} right now.</p>
           <p className="mt-1 text-ink-2">
             No tutor who teaches it is free in the next three weeks
@@ -658,8 +658,8 @@ function TimeStep(props: {
                     role="radio"
                     aria-checked={selected}
                     onClick={() => setDay(d)}
-                    className={`relative flex w-[4.75rem] shrink-0 snap-start flex-col items-center rounded-[16px] border px-2 py-2.5 transition-[background-color,border-color,transform] duration-150 active:scale-95 ${
-                      selected ? "border-accent bg-accent text-on-accent" : "border-line bg-surface"
+                    className={`relative flex w-[4.75rem] shrink-0 snap-start flex-col items-center border px-2 py-2.5 transition-[background-color,border-color,transform] duration-150 active:scale-95 ${
+ selected ? "border-accent bg-accent text-on-accent" : "border-line bg-surface"
                     }`}
                   >
                     <span className={`text-xs font-semibold uppercase ${selected ? "text-on-accent/85" : "text-muted"}`}>
@@ -670,8 +670,8 @@ function TimeStep(props: {
                     </span>
                     {picked > 0 && (
                       <span
-                        className={`absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full text-[0.6875rem] font-bold ${
-                          selected ? "bg-white text-accent" : "bg-accent text-on-accent"
+                        className={`absolute -top-1.5 -right-1.5 grid size-5 place-items-center text-[0.6875rem] font-bold ${
+ selected ? "bg-white text-accent" : "bg-accent text-on-accent"
                         }`}
                         aria-label={`${picked} picked`}
                       >
@@ -696,9 +696,9 @@ function TimeStep(props: {
                 return (
                   <label
                     key={s.start}
-                    className={`relative flex min-h-12 cursor-pointer items-center justify-center rounded-[14px] border text-[0.9375rem] font-semibold transition-[background-color,border-color,transform,opacity] duration-150 active:scale-95 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
-                      selected
-                        ? "border-accent bg-accent-soft text-accent-soft-ink"
+                    className={`relative flex min-h-12 cursor-pointer items-center justify-center border text-[0.9375rem] font-semibold transition-[background-color,border-color,transform,opacity] duration-150 active:scale-95 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
+ selected
+ ? "border-accent bg-accent-soft text-accent-soft-ink"
                         : disabled
                           ? "cursor-not-allowed border-line opacity-40"
                           : "border-line bg-surface"
@@ -713,7 +713,7 @@ function TimeStep(props: {
                     />
                     <span className="tabular">{fmtTime.format(new Date(s.start))}</span>
                     {selected && (
-                      <span className="absolute -top-2 right-1.5 rounded-full bg-accent px-1.5 text-[0.625rem] leading-4 font-bold text-on-accent">
+                      <span className="absolute -top-2 right-1.5 bg-accent px-1.5 text-[0.625rem] leading-4 font-bold text-on-accent">
                         {ORDINAL[order]}
                       </span>
                     )}
@@ -728,7 +728,7 @@ function TimeStep(props: {
               <p className="mb-2 text-sm font-medium">Your choices, in order</p>
               <ol className="space-y-2">
                 {props.picks.map((p, i) => (
-                  <li key={p} className="flex items-center justify-between gap-3 rounded-[14px] bg-bg-subtle px-4 py-2.5">
+                  <li key={p} className="flex items-center justify-between gap-3 bg-bg-subtle px-4 py-2.5">
                     <span className="text-sm">
                       <span className="mr-2 font-semibold text-accent-text">{ORDINAL[i]}</span>
                       {fmtFull.format(new Date(p))}
@@ -736,7 +736,7 @@ function TimeStep(props: {
                     <button
                       type="button"
                       onClick={() => props.onToggle(p)}
-                      className="grid size-8 place-items-center rounded-full text-muted active:scale-95"
+                      className="grid size-8 place-items-center text-muted active:scale-95"
                       aria-label={`Remove ${fmtFull.format(new Date(p))}`}
                     >
                       <Close size={16} />
@@ -757,12 +757,12 @@ function SlotsSkeleton() {
     <div className="space-y-4" aria-label="Loading times" role="status">
       <div className="flex gap-2">
         {Array.from({ length: 5 }, (_, i) => (
-          <div key={i} className="h-[3.75rem] w-[4.75rem] animate-pulse rounded-[16px] bg-bg-subtle" />
+          <div key={i} className="h-[3.75rem] w-[4.75rem] animate-pulse bg-bg-subtle" />
         ))}
       </div>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {Array.from({ length: 8 }, (_, i) => (
-          <div key={i} className="h-12 animate-pulse rounded-[14px] bg-bg-subtle" />
+          <div key={i} className="h-12 animate-pulse bg-bg-subtle" />
         ))}
       </div>
     </div>
@@ -860,8 +860,8 @@ function DetailsStep(props: {
           <Field id="parent-email" type="email" label="Email" autoComplete="off" value={d.parentEmail} error={e["parent.email"]} hint="They're copied on every email, including the payment link." onChange={(v) => onChange({ parentEmail: v })} />
         </div>
         <label
-          className={`flex cursor-pointer items-start gap-3 rounded-[16px] border p-4 transition-colors ${
-            e.consent ? "border-danger" : d.consent ? "border-accent bg-accent-soft" : "border-line bg-surface"
+          className={`flex cursor-pointer items-start gap-3 border p-4 transition-colors ${
+ e.consent ? "border-danger" : d.consent ? "border-accent bg-accent-soft" : "border-line bg-surface"
           }`}
         >
           <input
@@ -951,7 +951,7 @@ function ReviewStep(props: {
   ];
   return (
     <div className="space-y-8">
-      <StepTitle sub="Nothing is charged yet. You'll pay only after a tutor accepts.">Look right?</StepTitle>
+      <StepTitle sub="Nothing is charged yet. You'll pay only after a tutor claims your request.">Look right?</StepTitle>
       <dl className="card divide-y divide-line p-0">
         {rows.map((r) => (
           <div key={r.label} className="flex items-start gap-4 px-5 py-4">
@@ -965,8 +965,8 @@ function ReviewStep(props: {
       </dl>
       <ul className="space-y-2.5 text-[0.9375rem] text-ink-2">
         {[
-          "A tutor who teaches this subject gets your request and accepts or declines.",
-          "If they accept, you and your parent get a payment link by email.",
+          "Your request goes to all of our tutors. Whoever can take one of your times claims it.",
+          "You and your parent then get the time, the tutor's name and a payment link by email.",
           `Once paid, you're confirmed. Free cancellation up to ${props.freeCancelHours} hours before.`,
         ].map((t) => (
           <li key={t} className="flex gap-2.5">
@@ -1016,7 +1016,7 @@ function Summary(props: {
         </div>
       </div>
       <div className="mt-4 flex items-baseline justify-between border-t border-line pt-4">
-        <span className="text-sm text-muted">Due after a tutor accepts</span>
+        <span className="text-sm text-muted">Due after a tutor claims it</span>
         <span className="tabular text-2xl font-[650] tracking-[-0.03em]">{props.price}</span>
       </div>
     </div>
@@ -1035,27 +1035,38 @@ function Confirmation({
   preview: boolean;
 }) {
   return (
-    <div className="swap-in mx-auto max-w-xl text-center" role="status">
-      <span className="mx-auto grid size-14 place-items-center rounded-full bg-success-soft text-success">
-        <Check size={28} strokeWidth={2.25} />
+    <div className="swap-in mx-auto max-w-xl" role="status">
+      <span className="grid size-12 place-items-center bg-success-soft text-success">
+        <Check size={26} strokeWidth={2.25} />
       </span>
       <h2 className="t-h2 mt-6">Request sent.</h2>
       <p className="t-lead mt-4">
-        {subject.name}, {duration} minutes, {fmtFull.format(new Date(done.startAt))}
-        {done.preferenceIndex > 0 ? ` (your ${ORDINAL[done.preferenceIndex]} choice, since earlier ones were taken)` : ""}.
+        {subject.name}, {duration} minutes. It went to all of our tutors, and the first one who can take one of your
+        times will claim it.
       </p>
-      <div className="card mt-8 p-6 text-left">
+      <div className="mt-8 border-t border-rule">
+        <p className="t-label pt-4">Your times, in order</p>
+        <ol className="mt-2 divide-y divide-line border-b border-line">
+          {done.requestedStarts.map((s, i) => (
+            <li key={s} className="flex gap-4 py-3">
+              <span className="tabular w-6 font-semibold text-accent-text">{i + 1}</span>
+              {fmtFull.format(new Date(s))}
+            </li>
+          ))}
+        </ol>
+      </div>
+      <div className="mt-8">
         <p className="flex items-center gap-2 font-semibold">
           <Calendar size={18} className="text-accent-text" /> What happens next
         </p>
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-ink-2">
           <li>Check your email. You and your parent each got a copy of the request.</li>
-          <li>Your tutor accepts or declines, usually within a day.</li>
-          <li>If they accept, pay from the link in the email to confirm.</li>
+          <li>A tutor claims one of your times, usually within a day. You&apos;ll get an email with the time and their name.</li>
+          <li>Pay from the link in that email to confirm.</li>
         </ol>
       </div>
       {preview ? (
-        <p className="mt-6 text-sm text-muted">Preview mode: this request wasn&apos;t saved.</p>
+        <p className="mt-8 text-sm text-muted">Preview mode: this request wasn&apos;t saved.</p>
       ) : (
         <Link href={`/booking/${done.token}`} className="btn btn-primary btn-lg mt-8">
           View your request

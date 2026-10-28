@@ -106,7 +106,7 @@ export function AvailabilityEditor({
                     </select>
                     <button
                       type="button"
-                      className="grid size-9 place-items-center rounded-full text-muted hover:bg-bg-subtle active:scale-95"
+                      className="grid size-9 place-items-center text-muted hover:bg-bg-subtle active:scale-95"
                       onClick={() => setWindows((ws) => ws.filter((_, j) => j !== i))}
                       aria-label={`Remove ${DAY[d]} ${label(w.startMinute)} window`}
                     >

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { site } from "@/config/site";
-import { ArrowRight, Calendar, Check, Clock, Video } from "@/components/icons";
+import { ArrowRight, Calendar, Video } from "@/components/icons";
 import { BookingActions, PaidPoller } from "@/components/book/booking-actions";
 import { formatPrice } from "@/lib/booking/policy";
 import { getBookingView, type BookingView } from "@/lib/data/bookings";
@@ -90,14 +90,14 @@ async function BookingStatus({ params, searchParams }: PageProps<"/booking/[toke
 
       <dl className="card mt-8 divide-y divide-line p-0">
         {view.startAt && view.endAt ? (
-          <Row icon={<Calendar size={18} />} label="When">
+          <Row label="When">
             {formatDayLong(view.startAt)}
             <span className="block text-muted">
               {formatTime(view.startAt)} to {formatTime(view.endAt)} ET · {view.durationMinutes} minutes
             </span>
           </Row>
         ) : (
-          <Row icon={<Calendar size={18} />} label={`Times you picked · ${view.durationMinutes} minutes`}>
+          <Row label={`Times you picked · ${view.durationMinutes} minutes`}>
             <ol className="space-y-0.5">
               {view.requestedStarts.map((s, i) => (
                 <li key={s}>
@@ -108,15 +108,15 @@ async function BookingStatus({ params, searchParams }: PageProps<"/booking/[toke
             </ol>
           </Row>
         )}
-        <Row icon={<Check size={18} />} label="Subject">
+        <Row label="Subject">
           {view.subjectName}
           {view.level === "honors" ? " (Honors)" : ""}
           {view.testCourse && <span className="block text-muted">Preparing for {view.testCourse}</span>}
         </Row>
-        <Row icon={<Video size={18} />} label="Tutor">
+        <Row label="Tutor">
           {view.tutorFirstName ? `${view.tutorFirstName}, on Zoom` : "Not claimed yet"}
         </Row>
-        <Row icon={<Clock size={18} />} label="Price">
+        <Row label="Price">
           {view.amountPaidCents > 0 ? `${formatCents(view.amountPaidCents)} paid` : formatPrice(view.priceCents)}
         </Row>
       </dl>
@@ -170,14 +170,11 @@ async function BookingStatus({ params, searchParams }: PageProps<"/booking/[toke
   );
 }
 
-function Row({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex gap-4 px-5 py-4">
-      <span className="mt-0.5 text-accent-text">{icon}</span>
-      <div className="min-w-0">
-        <dt className="text-sm text-muted">{label}</dt>
-        <dd className="mt-0.5 font-medium">{children}</dd>
-      </div>
+    <div className="px-5 py-4">
+      <dt className="text-sm text-muted">{label}</dt>
+      <dd className="mt-0.5 font-medium">{children}</dd>
     </div>
   );
 }

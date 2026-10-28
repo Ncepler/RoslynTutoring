@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Calendar, Check, Close, Spinner } from "@/components/icons";
+import { ArrowLeft, ArrowRight, Check, Close, Spinner } from "@/components/icons";
 import { Segmented } from "./segmented";
 
 export type FlowSubject = { id: string; slug: string; name: string; hasHonors: boolean; teachable: boolean };
@@ -482,7 +482,7 @@ function SubjectStep(props: {
 }) {
   return (
     <div className="space-y-8">
-      <StepTitle sub="You'll only see times when a tutor who teaches it is free.">What do you need help with?</StepTitle>
+      <StepTitle>What do you need help with?</StepTitle>
       <fieldset>
         <legend className="sr-only">Subject</legend>
         <div className="grid gap-2.5 sm:grid-cols-2">
@@ -505,7 +505,7 @@ function SubjectStep(props: {
                 />
                 <span>
                   <span className="block font-semibold tracking-[-0.012em]">{s.name}</span>
-                  <span className="block text-sm text-muted">{s.teachable ? "Tutors available" : "No tutor yet"}</span>
+                  {!s.teachable && <span className="block text-sm text-muted">No tutor yet</span>}
                 </span>
                 <span
                   aria-hidden="true"
@@ -603,7 +603,7 @@ function TimeStep(props: {
   return (
     <div className="space-y-8">
       <StepTitle
-        sub={`Pick up to ${props.maxPreferences} times that work, in order of preference. More times means a better chance one works. All times are New York time.`}
+        sub={`Pick up to ${props.maxPreferences}, in order of preference. New York time.`}
       >
         When works for you?
       </StepTitle>
@@ -724,7 +724,7 @@ function TimeStep(props: {
           </fieldset>
 
           {props.picks.length > 0 && (
-            <div className="swap-in">
+            <div className="swap-in lg:hidden">
               <p className="mb-2 text-sm font-medium">Your choices, in order</p>
               <ol className="space-y-2">
                 {props.picks.map((p, i) => (
@@ -826,7 +826,7 @@ function DetailsStep(props: {
   const { details: d, errors: e, onChange } = props;
   return (
     <div className="space-y-10">
-      <StepTitle sub="Only the four founders can see this. We never share it.">About you</StepTitle>
+      <StepTitle sub="Only the four founders can see this.">About you</StepTitle>
 
       <section aria-labelledby="student-heading" className="space-y-4">
         <h3 id="student-heading" className="t-h3">
@@ -848,7 +848,7 @@ function DetailsStep(props: {
           />
           {e["student.grade"] && <p className="mt-1.5 text-sm text-danger">{e["student.grade"]}</p>}
         </div>
-        <Field id="email" type="email" label="Student email" autoComplete="email" value={d.email} error={e["student.email"]} hint="Where we'll send the confirmation and Zoom link." onChange={(v) => onChange({ email: v })} />
+        <Field id="email" type="email" label="Student email" autoComplete="email" value={d.email} error={e["student.email"]} onChange={(v) => onChange({ email: v })} />
       </section>
 
       <section aria-labelledby="parent-heading" className="space-y-4">
@@ -951,7 +951,7 @@ function ReviewStep(props: {
   ];
   return (
     <div className="space-y-8">
-      <StepTitle sub="Nothing is charged yet. You'll pay only after a tutor claims your request.">Look right?</StepTitle>
+      <StepTitle sub="Nothing is charged until a tutor claims your request.">Look right?</StepTitle>
       <dl className="card divide-y divide-line p-0">
         {rows.map((r) => (
           <div key={r.label} className="flex items-start gap-4 px-5 py-4">
@@ -963,18 +963,6 @@ function ReviewStep(props: {
           </div>
         ))}
       </dl>
-      <ul className="space-y-2.5 text-[0.9375rem] text-ink-2">
-        {[
-          "Your request goes to all of our tutors. Whoever can take one of your times claims it.",
-          "You and your parent then get the time, the tutor's name and a payment link by email.",
-          `Once paid, you're confirmed. Free cancellation up to ${props.freeCancelHours} hours before.`,
-        ].map((t) => (
-          <li key={t} className="flex gap-2.5">
-            <Check size={18} className="mt-0.5 shrink-0 text-accent-text" />
-            {t}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
@@ -1041,30 +1029,12 @@ function Confirmation({
       </span>
       <h2 className="t-h2 mt-6">Request sent.</h2>
       <p className="t-lead mt-4">
-        {subject.name}, {duration} minutes. It went to all of our tutors, and the first one who can take one of your
-        times will claim it.
+        {subject.name}, {duration} minutes. It went to all of our tutors.
       </p>
-      <div className="mt-8 border-t border-rule">
-        <p className="t-label pt-4">Your times, in order</p>
-        <ol className="mt-2 divide-y divide-line border-b border-line">
-          {done.requestedStarts.map((s, i) => (
-            <li key={s} className="flex gap-4 py-3">
-              <span className="tabular w-6 font-semibold text-accent-text">{i + 1}</span>
-              {fmtFull.format(new Date(s))}
-            </li>
-          ))}
-        </ol>
-      </div>
-      <div className="mt-8">
-        <p className="flex items-center gap-2 font-semibold">
-          <Calendar size={18} className="text-accent-text" /> What happens next
-        </p>
-        <ol className="mt-3 list-decimal space-y-2 pl-5 text-ink-2">
-          <li>Check your email. You and your parent each got a copy of the request.</li>
-          <li>A tutor claims one of your times, usually within a day. You&apos;ll get an email with the time and their name.</li>
-          <li>Pay from the link in that email to confirm.</li>
-        </ol>
-      </div>
+      <p className="mt-6 max-w-md text-ink-2">
+        Check your email: you and your parent each got a copy. When a tutor claims one of your times, you&apos;ll get the
+        time, their name and a payment link.
+      </p>
       {preview ? (
         <p className="mt-8 text-sm text-muted">Preview mode: this request wasn&apos;t saved.</p>
       ) : (

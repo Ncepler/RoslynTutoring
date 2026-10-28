@@ -31,26 +31,33 @@ export function BookingCard({ b, meId }: { b: AdminBooking; meId: string }) {
       </p>
       {b.testCourse && <p className="text-sm text-muted">Preparing for {b.testCourse}</p>}
 
-      <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-        <div className="min-w-0">
-          <dt className="text-xs text-muted">Student</dt>
-          <dd>
-            {b.student.name}, grade {b.student.grade}
-            <a className="link block truncate" href={`mailto:${b.student.email}`}>
-              {b.student.email}
-            </a>
-          </dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="text-xs text-muted">Parent or guardian</dt>
-          <dd>
-            {b.parent.name}
-            <a className="link block truncate" href={`mailto:${b.parent.email}`}>
-              {b.parent.email}
-            </a>
-          </dd>
-        </div>
-      </dl>
+      <details className="mt-3 text-sm">
+        <summary className="flex items-center justify-between gap-3 py-1">
+          <span>
+            <span className="font-medium">{b.student.name}</span>, grade {b.student.grade}
+          </span>
+          <span className="text-muted">Contact</span>
+        </summary>
+        <dl className="mt-2 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+          <div className="min-w-0">
+            <dt className="text-xs text-muted">Student</dt>
+            <dd>
+              <a className="link block truncate" href={`mailto:${b.student.email}`}>
+                {b.student.email}
+              </a>
+            </dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="text-xs text-muted">Parent or guardian</dt>
+            <dd>
+              {b.parent.name}
+              <a className="link block truncate" href={`mailto:${b.parent.email}`}>
+                {b.parent.email}
+              </a>
+            </dd>
+          </div>
+        </dl>
+      </details>
 
       {b.status === "awaiting_payment" && b.holdExpiresAt && (
         <p className="mt-2 text-sm text-muted">Held until {formatDateTime(b.holdExpiresAt)}</p>

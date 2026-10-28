@@ -1,7 +1,7 @@
 export function PageIntro({ title, lead, children }: { title: string; lead?: React.ReactNode; children?: React.ReactNode }) {
   return (
     <section className="border-b border-line">
-      <div className="wrap grid gap-6 pt-12 pb-12 md:pt-20 md:pb-16 lg:grid-cols-12">
+      <div className="wrap grid gap-6 pt-16 pb-14 md:pt-28 md:pb-20 lg:grid-cols-12">
         <div className="lg:col-span-8">
           <h1 className="t-display enter-tf">{title}</h1>
           {lead && (

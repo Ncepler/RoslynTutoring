@@ -24,7 +24,7 @@ export function MoneyPanel({
             Money
           </h2>
           <p className="text-sm text-muted">
-            {period.label}. Sessions count in the period they happen. Net is after Stripe fees and refunds.
+            {period.label}, after Stripe fees and refunds.
           </p>
         </div>
         <LinkTabs

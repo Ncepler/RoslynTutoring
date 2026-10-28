@@ -46,7 +46,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main id="main" className="wrap px-4 pt-8 pb-20 sm:px-6">
+      <main id="main" className="wrap pt-8 pb-20 ">
         {children}
       </main>
     </>
@@ -55,7 +55,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
 
 function ShellFallback() {
   return (
-    <div className="wrap px-4 pt-24 sm:px-6">
+    <div className="wrap pt-24 ">
       <div className="h-40 animate-pulse bg-surface" />
     </div>
   );

@@ -37,7 +37,7 @@ export default async function BookPage() {
   };
 
   return (
-    <div className="wrap px-4 pt-8 pb-16 sm:px-6 md:pt-12 md:pb-24">
+    <div className="wrap pt-8 pb-16  md:pt-12 md:pb-24">
       <h1 className="sr-only">Book a session</h1>
       <Suspense fallback={<div className="h-[32rem] animate-pulse bg-bg-subtle" />}>
         <BookingFlow {...props} />

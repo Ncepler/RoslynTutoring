@@ -36,7 +36,12 @@ a generated section further down, these win.
 6. **Dark mode tokens.** Background #020617, card #0F172A, foreground #F8FAFC,
    muted text #94A3B8, border #1E293B, field border #64748B, accent fill
    #0369A1 (white text 5.9:1), accent text/links #38BDF8.
-7. **Motion.** Entrance fades only (opacity + 8-12px rise, CSS, under 400ms).
+7. **Calm over complete (Apple "simplicity, not minimalism").** One idea and one
+   action per section; say a thing once. The hero is a headline, one line and one
+   button. Sections have no alternating backgrounds and no closing banner. Contact
+   details sit one level down (a disclosure) on admin cards. Price, cancellation and
+   "pay after a tutor claims it" each appear in one place, not four.
+8. **Motion.** Entrance fades only (opacity + 8-12px rise, CSS, under 400ms).
    No GSAP, no scroll-triggered reveals, nothing that hides content from crawlers.
 
 ---

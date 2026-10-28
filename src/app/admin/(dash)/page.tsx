@@ -40,7 +40,7 @@ export default async function OverviewPage(props: PageProps<"/admin">) {
   const past = all
     .filter((b) => b.status === "confirmed" && b.past)
     .sort((a, b) => whenOf(b).localeCompare(whenOf(a)))
-    .slice(0, 8);
+    .slice(0, 4);
 
   const href = (p: Record<string, string>) => {
     const q = new URLSearchParams({ period: kind, view, ...p });
@@ -73,7 +73,7 @@ export default async function OverviewPage(props: PageProps<"/admin">) {
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Panel
           title="Open requests"
-          sub="Every new request goes to all four of you. Claim one of the student's times if you can take it; the payment link goes out when you do."
+          sub="Sent to all four of you. Claim one of the student's times to take it."
           className="lg:col-span-2"
         >
           {pending.length > 0 ? (

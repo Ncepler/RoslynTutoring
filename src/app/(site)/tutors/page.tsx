@@ -18,28 +18,17 @@ export default async function TutorsPage() {
     <>
       <PageIntro
         title="The tutors"
-        lead={`Every session is taught by one of the founders: ${site.school} students who have each earned many 100s on Regents exams. When you book, your request goes to all of them and whoever can take one of your times claims it.`}
+        lead={`Every session is taught by one of the founders, ${site.school} students who have each earned many 100s on the Regents.`}
       />
-      <section className="wrap px-4 py-14 sm:px-6 md:py-20">
-        <div className="grid gap-4 sm:grid-cols-2">
+      <section className="wrap py-14  md:py-20">
+        <div className="grid gap-x-8 sm:grid-cols-2">
           {catalog.tutors.map((t) => (
             <TutorCard key={t.id} tutor={t} subjects={catalog.subjects} />
           ))}
         </div>
-        <div className="mt-12 flex flex-col items-start gap-4 border-t border-line pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <p className="max-w-xl text-ink-2">
-            Want to know more before booking? Read the{" "}
-            <Link href="/faq" className="link">
-              FAQ
-            </Link>{" "}
-            or our{" "}
-            <Link href="/code-of-conduct" className="link">
-              code of conduct
-            </Link>
-            .
-          </p>
-          <Link href="/book" className="btn btn-primary">
-            Book a session <ArrowRight size={17} />
+        <div className="mt-10">
+          <Link href="/book" className="btn btn-primary btn-lg">
+            Book a session <ArrowRight size={18} />
           </Link>
         </div>
       </section>

@@ -1,13 +1,5 @@
 import { Hero } from "@/components/home/hero";
-import {
-  ClosingCta,
-  FaqTeaser,
-  HowItWorks,
-  PricingSection,
-  SubjectsSection,
-  TutorsSection,
-  UpcomingTests,
-} from "@/components/home/sections";
+import { FaqTeaser, HowItWorks, SubjectsAndPricing, TutorsSection, UpcomingTests } from "@/components/home/sections";
 import { JsonLd } from "@/components/site/json-ld";
 import { getCatalog } from "@/lib/data/catalog";
 
@@ -18,12 +10,10 @@ export default async function HomePage() {
       <JsonLd catalog={catalog} />
       <Hero catalog={catalog} />
       <UpcomingTests catalog={catalog} />
-      <TutorsSection catalog={catalog} />
-      <SubjectsSection catalog={catalog} />
-      <PricingSection />
       <HowItWorks />
+      <TutorsSection catalog={catalog} />
+      <SubjectsAndPricing catalog={catalog} />
       <FaqTeaser />
-      <ClosingCta />
     </>
   );
 }

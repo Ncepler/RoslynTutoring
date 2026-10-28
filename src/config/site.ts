@@ -14,7 +14,13 @@ export const site = {
   area: "Roslyn, NY",
   /** Shared group inbox. Placeholder until the real address exists. */
   contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "hello@example.com",
-  url: (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, ""),
+  /** Set NEXT_PUBLIC_SITE_URL once there's a domain. On Vercel it falls back to the production URL. */
+  url: (
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "http://localhost:3000")
+  ).replace(/\/$/, ""),
   timezone: "America/New_York",
   /** Grades we tutor. Validation and the booking form read from this. */
   grades: [8, 9, 10] as const,

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { bookingRequestSchema, fieldErrors } from "@/lib/booking/validation";
 import { createBookingRequest } from "@/lib/data/bookings";
 
+// Saves the request and emails the family and all four founders.
+export const maxDuration = 60;
+
 /**
  * The only way the public creates anything: a booking request. It goes to
  * every founder and one of them claims it. Validated

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { fieldErrors, reportSchema } from "@/lib/booking/validation";
 import { submitReport } from "@/lib/data/reports";
 
+export const maxDuration = 30;
+
 export async function POST(request: Request) {
   let body: unknown;
   try {

@@ -7,6 +7,9 @@ import { loadAdminData, requireAdmin } from "@/lib/data/admin";
 import { toAdminBookings, whenOf } from "@/lib/data/admin-view";
 import type { BookingStatus } from "@/lib/types";
 
+// Claim and cancel actions run here: Stripe, calendar and emails.
+export const maxDuration = 60;
+
 export const metadata: Metadata = { title: "Bookings" };
 
 const FILTERS: { value: string; label: string; match: (s: BookingStatus, past: boolean) => boolean }[] = [

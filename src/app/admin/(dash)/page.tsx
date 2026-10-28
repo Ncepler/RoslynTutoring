@@ -9,6 +9,9 @@ import { loadAdminData, requireAdmin } from "@/lib/data/admin";
 import { toAdminBookings, whenOf } from "@/lib/data/admin-view";
 import { periodFor, summarizeMoney, type PeriodKind } from "@/lib/money";
 
+// Claim and cancel actions run here: Stripe, calendar and emails.
+export const maxDuration = 60;
+
 export const metadata: Metadata = { title: "Overview" };
 
 export default async function OverviewPage(props: PageProps<"/admin">) {

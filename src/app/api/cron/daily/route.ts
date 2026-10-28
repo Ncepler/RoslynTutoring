@@ -3,6 +3,9 @@ import { expireStale, sendReminders } from "@/lib/data/bookings";
 import { isPreview } from "@/lib/env";
 import { createServiceClient } from "@/lib/supabase/service";
 
+// Sends every reminder for the day in one run.
+export const maxDuration = 300;
+
 /**
  * Runs once a day (vercel.json, around noon New York time; the free plan
  * allows one run per day). Sends reminders for today's sessions and closes

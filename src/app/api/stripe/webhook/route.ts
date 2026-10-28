@@ -3,6 +3,9 @@ import { checkoutExpired, confirmPayment, syncRefund } from "@/lib/data/bookings
 import { verifyWebhook } from "@/lib/payments/stripe";
 import { createServiceClient } from "@/lib/supabase/service";
 
+// Confirming a payment also creates the calendar event and sends emails.
+export const maxDuration = 60;
+
 /**
  * Stripe → us. Subscribe the endpoint to: checkout.session.completed,
  * checkout.session.async_payment_succeeded, checkout.session.expired and
